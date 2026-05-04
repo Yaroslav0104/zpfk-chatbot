@@ -28,14 +28,57 @@ try {
     // 4. ГЕНЕРАЦІЯ УНІКАЛЬНОГО КОДУ ЗВЕРНЕННЯ (напр. ZPFK-9B3F2A)
     $tracking_code = 'ZPFK-' . strtoupper(substr(uniqid(), -6));
 
+// 4.5 АНАЛІЗ ЧЕРЕЗ ШІ-СЕРВЕР (PYTHON)
+    $ai_sentiment = 'neutral'; 
+    $ai_is_spam = 0;           
+    $text_to_analyze = $data['message'] ?? '';
+    
+    // Починаємо записувати лог
+    $debug_info = "Час: " . date('H:i:s') . "\nТекст: " . $text_to_analyze . "\n";
+
+    if (!empty($text_to_analyze)) {
+        $ch = curl_init('http://127.0.0.1:8000/analyze');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(['text' => $text_to_analyze]));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+
+        $ai_response = curl_exec($ch);
+        $curl_err = curl_error($ch);
+        curl_close($ch);
+
+        $debug_info .= "Помилка cURL: " . ($curl_err ? $curl_err : "Немає") . "\n";
+        $debug_info .= "Відповідь від Python: " . $ai_response . "\n";
+
+        if ($ai_response) {
+            $ai_data = json_decode($ai_response, true);
+            if (isset($ai_data['sentiment'])) {
+                $ai_sentiment = $ai_data['sentiment'];
+            }
+            if (isset($ai_data['is_spam'])) {
+                $ai_is_spam = (int)$ai_data['is_spam'];
+            }
+        }
+    }
+    
+    $debug_info .= "Збережено Тональність: $ai_sentiment | Збережено Спам: $ai_is_spam\n-----------------\n";
+    
+    // Зберігаємо лог у файл ai_log.txt у тій самій папці, де лежить скрипт
+    file_put_contents(__DIR__ . '/ai_log.txt', $debug_info, FILE_APPEND);
+
     // 5. ЗАПИС У ТАБЛИЦЮ COMPLAINTS
-   $sql = "INSERT INTO complaints 
-            (tracking_code, full_name, student_group, category, message, is_anonymous, contact_type, contact_value, appeal_type, sentiment, is_spam) 
-            VALUES 
-            (:tracking_code, :full_name, :student_group, :category, :message, :is_anonymous, :contact_type, :contact_value, :appeal_type, :sentiment, :is_spam)";
+    $sql = "INSERT INTO complaints (
+        tracking_code, full_name, student_group, category, message, 
+        is_anonymous, contact_type, contact_value, appeal_type, 
+        sentiment, is_spam
+    ) VALUES (
+        :tracking_code, :full_name, :student_group, :category, :message, 
+        :is_anonymous, :contact_type, :contact_value, :appeal_type, 
+        :sentiment, :is_spam
+    )";
 
     $stmt = $pdo->prepare($sql);
-    
     $stmt->execute([
         ':tracking_code' => $tracking_code,
         ':full_name'     => $data['full_name'] ?? null,
@@ -46,9 +89,10 @@ try {
         ':contact_type'  => $data['contact_type'] ?? 'none',
         ':contact_value' => $data['contact_value'] ?? null,
         ':appeal_type'   => $data['appeal_type'] ?? 'complaint',
-        // НОВІ ПОЛЯ
-        ':sentiment'     => $data['sentiment'] ?? 'neutral', // За замовчуванням нейтрально
-        ':is_spam'       => (int)($data['is_spam'] ?? 0)     // За замовчуванням 0 (не спам)
+        
+        // ДАНІ З PYTHON
+        ':sentiment'     => $ai_sentiment, 
+        ':is_spam'       => $ai_is_spam
     ]);
 
     // Отримуємо ID щойно створеної скарги
