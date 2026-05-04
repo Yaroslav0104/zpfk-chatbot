@@ -1,0 +1,44 @@
+.chatbox {
+  border: 1px solid #ccc;
+  padding: 15px;
+  margin-bottom: 15px;
+  height: 65vh;
+  overflow-y: auto;
+  background: #f9f9f9;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.user {
+  align-self: flex-end;
+  background-color: #dcf8c6;
+  padding: 10px 15px;
+  border-radius: 15px 15px 0 15px;
+  max-width: 70%;
+  text-align: left;
+}
+
+.bot {
+  align-self: flex-start;
+  background-color: #ffffff;
+  color: #0f172a; /* Темний текст для білого фонового бульбашки */
+  padding: 10px 15px;
+  border-radius: 15px 15px 15px 0;
+  max-width: 70%;
+  text-align: left;
+  border: 1px solid #eee;
+}
+
+.user {
+  color: #ffffff; /* Світлий текст для синього фонового бульбашки */
+}
+
+.user strong,
+.bot strong {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #333;
+}

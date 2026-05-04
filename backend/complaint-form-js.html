@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>Форма скарги</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 700px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+    }
+
+    label {
+      font-weight: bold;
+    }
+
+    input, select, textarea, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      margin-bottom: 16px;
+      box-sizing: border-box;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .message {
+      padding: 12px;
+      margin-top: 15px;
+      border-radius: 6px;
+      display: none;
+    }
+
+    .success {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+  </style>
+</head>
+<body>
+  <h2>Подати скаргу</h2>
+
+  <form id="complaintForm">
+    <label for="full_name">ПІБ:</label>
+    <input type="text" id="full_name" name="full_name">
+
+    <label for="student_group">Група:</label>
+    <input type="text" id="student_group" name="student_group">
+
+    <label for="category">Категорія:</label>
+    <select id="category" name="category">
+      <option value="schedule">Розклад</option>
+      <option value="teacher">Викладач</option>
+      <option value="administration">Адміністрація</option>
+      <option value="technical_issue">Технічна проблема</option>
+      <option value="other">Інше</option>
+    </select>
+
+    <label for="subject">Тема:</label>
+    <input type="text" id="subject" name="subject" required>
+
+    <label for="message">Текст скарги:</label>
+    <textarea id="message" name="message" rows="6" required></textarea>
+
+    <label>
+      <input type="checkbox" id="is_anonymous" name="is_anonymous" value="1">
+      Подати анонімно
+    </label>
+
+    <button type="submit">Надіслати скаргу</button>
+  </form>
+
+  <div id="resultMessage" class="message"></div>
+
+  <script>
+    const form = document.getElementById('complaintForm');
+    const resultMessage = document.getElementById('resultMessage');
+    const anonymousCheckbox = document.getElementById('is_anonymous');
+    const fullNameInput = document.getElementById('full_name');
+    const groupInput = document.getElementById('student_group');
+
+    anonymousCheckbox.addEventListener('change', function () {
+      if (this.checked) {
+        fullNameInput.value = '';
+        groupInput.value = '';
+        fullNameInput.disabled = true;
+        groupInput.disabled = true;
+      } else {
+        fullNameInput.disabled = false;
+        groupInput.disabled = false;
+      }
+    });
+
+    form.addEventListener('submit', async function (event) {
+      event.preventDefault();
+
+      const formData = {
+        full_name: fullNameInput.value,
+        student_group: groupInput.value,
+        category: document.getElementById('category').value,
+        subject: document.getElementById('subject').value,
+        message: document.getElementById('message').value,
+        is_anonymous: anonymousCheckbox.checked ? 1 : 0
+      };
+
+      try {
+        const response = await fetch('create-complaint.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        });
+
+        const data = await response.json();
+
+        resultMessage.style.display = 'block';
+
+        if (data.success) {
+          resultMessage.className = 'message success';
+          resultMessage.textContent = data.message;
+          form.reset();
+          fullNameInput.disabled = false;
+          groupInput.disabled = false;
+        } else {
+          resultMessage.className = 'message error';
+          resultMessage.textContent = data.message;
+        }
+
+      } catch (error) {
+        resultMessage.style.display = 'block';
+        resultMessage.className = 'message error';
+        resultMessage.textContent = 'Сталася помилка при надсиланні форми.';
+      }
+    });
+  </script>
+</body>
+</html>

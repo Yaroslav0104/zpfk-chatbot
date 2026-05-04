@@ -1,0 +1,257 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+
+/* ==========================================
+   1. БАЗОВІ СТИЛІ ТА ТЕМНА ТЕМА (ЗА ЗАМОВЧУВАННЯМ)
+========================================== */
+body {
+  margin: 0; padding: 0;
+  background-color: #020617;
+  color: white;
+  font-family: 'Inter', sans-serif;
+  overflow: hidden;
+}
+
+* { box-sizing: border-box; }
+
+.bot-layout { 
+  display: flex; height: 100vh; width: 100vw; 
+  background-color: #020617; transition: background-color 0.3s ease;
+}
+
+/* САЙДБАР */
+.bot-sidebar {
+  width: 260px; background: #0f172a;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex; flex-direction: column; flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+.sidebar-brand { padding: 30px 20px; }
+.brand-logo { color: #fff; font-weight: 800 !important; letter-spacing: -0.5px; }
+.brand-sub { color: #9ca3af; }
+
+.btn-dashboard-sidebar {
+  background-color: #7dd3fc !important; color: #fff !important;
+  font-weight: 800 !important; border-radius: 12px !important;
+  padding: 12px !important; transition: 0.25s ease !important;
+}
+.btn-dashboard-sidebar:hover { background-color: #38bdf8 !important; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(56, 189, 248, 0.4) !important; }
+
+.btn-logout-sidebar {
+  color: #f87171 !important; border: 1px solid rgba(248, 113, 113, 0.4) !important;
+  border-radius: 12px !important; padding: 10px !important; font-weight: 600 !important; transition: 0.2s ease !important;
+}
+.btn-logout-sidebar:hover { background-color: rgba(248, 113, 113, 0.1) !important; border-color: #f87171 !important; }
+
+.btn-login-sidebar {
+  background-color: rgba(255, 255, 255, 0.05) !important; color: #9ca3af !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important; border-radius: 12px !important; padding: 12px !important; transition: 0.2s !important;
+}
+.btn-login-sidebar:hover { background-color: rgba(255, 255, 255, 0.1) !important; color: #fff !important; }
+
+/* ЧАТ */
+.bot-content {
+  flex: 1; display: flex; flex-direction: column;
+  background: radial-gradient(circle at 50% 0%, #1e293b 0%, #020617 100%);
+  transition: all 0.3s ease;
+}
+.bot-header-simple { 
+  padding: 20px 40px; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.05); 
+  display: flex; justify-content: space-between; align-items: center; transition: all 0.3s ease;
+}
+.bot-chat-area { flex: 1; overflow-y: auto; padding: 40px; }
+.bot-chat-area > div { background-color: transparent !important; box-shadow: none !important; }
+
+.bot-chat-area [class*="bot"], .bot-chat-area .bot {
+  max-width: 65%; background-color: rgba(30, 41, 59, 0.9) !important; color: #e2e8f0 !important;
+  border-radius: 16px 16px 16px 4px !important; padding: 12px 18px !important; margin-bottom: 15px !important; border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+.bot-chat-area [class*="user"], .bot-chat-area .user, .user {
+  max-width: 65%; background: linear-gradient(135deg, #38bdf8, #0ea5e9) !important; color: #ffffff !important;
+  border-radius: 18px 18px 4px 18px !important; padding: 12px 18px !important; margin-left: auto !important; margin-bottom: 15px !important;
+  box-shadow: 0 4px 15px rgba(56, 189, 248, 0.2) !important; font-weight: 500 !important; border: none !important;
+}
+.bot-chat-area strong, .bot-chat-area b { color: #ffffff !important; display: block; margin-bottom: 4px; font-weight: 700; }
+
+/* DRAWER ТА МОДАЛКА */
+.login-drawer { width: 320px !important; background-color: #0f172a !important; color: white !important; padding: 40px 30px !important; border-left: 1px solid rgba(255, 255, 255, 0.05) !important; transition: all 0.3s ease; }
+.drawer-title { margin-bottom: 30px !important; color: #38bdf8 !important; font-weight: 700 !important; text-align: center; }
+.btn-login-submit { background-color: #38bdf8 !important; color: #020617 !important; font-weight: 700 !important; padding: 12px !important; border-radius: 10px !important; margin-top: 15px !important; }
+
+.bot-modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
+.bot-modal-content { background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 30px 30px 50px 30px !important; width: 100%; max-width: 550px; max-height: 85vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); transition: all 0.3s ease; }
+.bot-modal-content::-webkit-scrollbar { width: 6px; }
+.bot-modal-content::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+
+.bot-glass-input, .bot-input-field { width: 100%; padding: 14px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; color: #fff; outline: none; transition: 0.3s; margin-bottom: 10px; }
+.bot-glass-input:focus, .bot-input-field:focus { border-color: #38bdf8; background: rgba(15, 23, 42, 0.8); }
+.bot-modal-field label { display: block; font-size: 13px; color: #9ca3af; margin-bottom: 6px; font-weight: 600; }
+.bot-btn-success { flex: 1; padding: 14px; border: none; border-radius: 12px; font-weight: 700; background: #38bdf8; color: white; cursor: pointer; transition: 0.2s; }
+.bot-btn-success:hover { background: #0284c7; }
+.bot-btn-danger { flex: 1; padding: 14px; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px; font-weight: 700; background: transparent; color: #fca5a5; cursor: pointer; transition: 0.2s; }
+.bot-btn-danger:hover { background: rgba(239, 68, 68, 0.1); }
+
+/* ==========================================
+   2. СВІТЛА ТЕМА (LIGHT MODE OVERRIDES)
+========================================== */
+.light-theme { background-color: #f1f5f9; color: #0f172a; }
+.light-theme .bot-sidebar { background: #ffffff; border-right: 1px solid rgba(0, 0, 0, 0.08); }
+.light-theme .brand-logo { color: #0f172a !important; }
+.light-theme .brand-sub { color: #64748b !important; }
+
+.light-theme .btn-login-sidebar { background-color: #f1f5f9 !important; color: #475569 !important; border: 1px solid rgba(0, 0, 0, 0.1) !important; }
+.light-theme .btn-login-sidebar:hover { background-color: #e2e8f0 !important; color: #0f172a !important; }
+
+.light-theme .bot-content { background: #f8fafc; }
+.light-theme .bot-header-simple { border-bottom: 1px solid rgba(0,0,0,0.08); color: #0f172a; }
+
+.light-theme .bot-chat-area [class*="bot"], .light-theme .bot-chat-area .bot { background-color: #ffffff !important; color: #1e293b !important; border: 1px solid rgba(0,0,0,0.08) !important; box-shadow: 0 4px 10px rgba(0,0,0,0.03) !important; }
+.light-theme .bot-chat-area strong, .light-theme .bot-chat-area b { color: #0f172a !important; }
+.light-theme .bot-chat-area [class*="user"] strong, .light-theme .bot-chat-area [class*="user"] b { color: #ffffff !important; }
+
+.light-theme .bot-modal-overlay { background: rgba(15, 23, 42, 0.5); }
+.light-theme .bot-modal-content { background: #ffffff; border: 1px solid rgba(0,0,0,0.1); color: #0f172a; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15); }
+.light-theme .modal-header-title { background: none; -webkit-text-fill-color: #0f172a; color: #0f172a !important; }
+.light-theme .bot-modal-field label { color: #475569; }
+.light-theme .bot-checkbox-label { color: #1e293b; }
+
+.light-theme .bot-glass-input, .light-theme .bot-input-field { background: #f8fafc; border: 1px solid rgba(0,0,0,0.15); color: #0f172a; }
+.light-theme .bot-glass-input:focus, .light-theme .bot-input-field:focus { border-color: #38bdf8; background: #ffffff; box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1); }
+
+.light-theme .login-drawer { background-color: #ffffff !important; color: #0f172a !important; border-left: 1px solid rgba(0,0,0,0.08) !important; }
+
+/* ==========================================
+   3. АДАПТИВНІСТЬ ДЛЯ ЧАТ-БОТА (МОБІЛЬНА ВЕРСІЯ)
+========================================== */
+
+/* Ховаємо кнопку меню на комп'ютері */
+.mobile-menu-btn {
+  display: none !important;
+}
+
+.header-title {
+  flex-grow: 1;
+}
+
+/* === ДОДАТКОВІ СТИЛІ ДЛЯ ТЕЛЕФОНІВ ТА ПЛАНШЕТІВ (до 1024px) === */
+@media screen and (max-width: 1024px) { 
+  
+  /* Змушуємо одинарну кнопку розтягнутися в ширину */
+  .bot-controls > div > button {
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
+    width: calc(100% - 30px) !important; /* Розтягуємо, залишаючи невеликі відступи від країв екрану */
+    max-width: 100% !important;
+    padding: 18px 0 !important; /* Прибираємо бокові відступи, щоб працювала ширина 100% */
+    font-size: 18px !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 25px rgba(56, 189, 248, 0.3) !important;
+    margin: 0 auto !important; /* Центруємо кнопку на екрані */
+  }
+}
+
+/* МЕДІА-ЗАПИТ ДЛЯ ТЕЛЕФОНІВ ТА ПЛАНШЕТІВ (до 768px) */
+@media screen and (max-width: 768px) {
+  
+  /* Відключаємо режим "в один ряд" для всього екрану */
+  .bot-layout {
+    display: block !important; 
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+  }
+
+  /* Жорстко ховаємо сайдбар за лівий край екрану */
+  .bot-sidebar {
+    position: fixed !important;
+    left: 0;
+    top: 0;
+    width: 280px !important; /* Фіксована ширина меню */
+    max-width: 85vw;
+    height: 100vh;
+    z-index: 1050 !important;
+    transform: translateX(-100%); /* Сховано за екраном */
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Клас, який висуває меню при кліку на бургер */
+  .bot-sidebar.mobile-open {
+    transform: translateX(0) !important;
+    box-shadow: 4px 0 25px rgba(0, 0, 0, 0.6) !important;
+  }
+
+  /* Чат тепер займає всі 100% ширини екрану */
+  .bot-content {
+    width: 100% !important;
+    height: 100vh;
+    margin-left: 0 !important;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Показуємо кнопку-бургер */
+  .mobile-menu-btn {
+    display: inline-flex !important;
+  }
+
+  /* Темний фон, коли меню відкрите */
+  .mobile-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(3px);
+    z-index: 1040 !important; /* Під сайдбаром, але над чатом */
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* Зменшуємо відступи в шапці на мобільних */
+  .bot-header-simple {
+    padding: 15px 20px; 
+  }
+
+  /* Даємо бульбашкам чату більше місця, щоб текст не сплющувався */
+  .bot-chat-area {
+    padding: 20px; 
+  }
+  
+  .bot-chat-area [class*="bot"], .bot-chat-area .bot,
+  .bot-chat-area [class*="user"], .bot-chat-area .user, .user {
+    max-width: 85% !important; /* Розширюємо бульбашки до 85% екрану */
+  }
+
+  /* === КОМПАКТНІ КНОПКИ В ЧАТІ (ДЛЯ МОБІЛЬНИХ) === */
+  
+  /* Перетворюємо контейнер кнопок на гнучку сітку */
+  .bot-controls > div > div, 
+  .bot-controls > div {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    justify-content: center;
+  }
+
+  /* Зменшуємо самі кнопки і ставимо по 2 в ряд */
+  .bot-controls button {
+    flex: 1 1 calc(50% - 10px) !important; /* Дві кнопки поруч */
+    padding: 10px 8px !important; /* Робимо їх нижчими */
+    font-size: 13px !important; /* Менший шрифт */
+    margin: 0 !important; /* Прибираємо старі відступи */
+    border-radius: 12px !important; /* Акуратніші кути */
+    line-height: 1.2 !important;
+    min-height: 44px !important; /* Оптимальний розмір для натискання пальцем */
+  }
+  
+  /* Якщо кнопок непарна кількість, остання розтягнеться на всю ширину */
+  .bot-controls button:last-child:nth-child(odd) {
+    flex: 1 1 100% !important;
+  }
+}
