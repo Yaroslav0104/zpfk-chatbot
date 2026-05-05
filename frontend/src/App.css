@@ -50,15 +50,23 @@ body {
 
 /* ЧАТ */
 .bot-content {
-  flex: 1; display: flex; flex-direction: column;
-  background: radial-gradient(circle at 50% 0%, #1e293b 0%, #020617 100%);
-  transition: all 0.3s ease;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+
+  justify-content: flex-start !important; 
 }
 .bot-header-simple { 
   padding: 20px 40px; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.05); 
   display: flex; justify-content: space-between; align-items: center; transition: all 0.3s ease;
 }
-.bot-chat-area { flex: 1; overflow-y: auto; padding: 40px; }
+.bot-chat-area {
+  /* flex-grow дозволяє чату займати максимум місця, але не розштовхувати кнопки */
+  flex: 1 1 auto !important; 
+  overflow-y: auto;
+  /* Мінімальний відступ знизу, щоб повідомлення не торкалися кнопок */
+  padding: 30px 40px 5px 40px !important; 
+}
 .bot-chat-area > div { background-color: transparent !important; box-shadow: none !important; }
 
 .bot-chat-area [class*="bot"], .bot-chat-area .bot {
@@ -116,142 +124,110 @@ body {
 
 .light-theme .bot-glass-input, .light-theme .bot-input-field { background: #f8fafc; border: 1px solid rgba(0,0,0,0.15); color: #0f172a; }
 .light-theme .bot-glass-input:focus, .light-theme .bot-input-field:focus { border-color: #38bdf8; background: #ffffff; box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1); }
-
 .light-theme .login-drawer { background-color: #ffffff !important; color: #0f172a !important; border-left: 1px solid rgba(0,0,0,0.08) !important; }
 
 /* ==========================================
-   3. АДАПТИВНІСТЬ ДЛЯ ЧАТ-БОТА (МОБІЛЬНА ВЕРСІЯ)
+   3. СТИЛІ КНОПОК ЧАТУ (Загальні та ПК)
 ========================================== */
-
-/* Ховаємо кнопку меню на комп'ютері */
-.mobile-menu-btn {
-  display: none !important;
+/* Контейнер кнопок */
+.buttons, .bot-controls > div > div {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: center;
+  gap: 10px !important;
+  margin-top: 10px;
+  width: 100%;
 }
 
-.header-title {
-  flex-grow: 1;
+/* Самі кнопки (Смарт-сітка: 5 зверху, 4 знизу, або розтягнуті якщо їх мало) */
+.buttons button, .bot-controls > div > button:not(.MuiButton-root) {
+  /* Базовий розмір під 5 кнопок. Але якщо їх менше (4 або 2) — вони рівномірно розтягнуться */
+  flex: 1 1 calc((100% - 40px) / 5) !important; 
+  
+  min-width: 170px !important; /* Захист від сплющування тексту */
+  max-width: 300px !important; /* Дозволяємо кнопкам гарно розтягнутися, якщо їх всього дві */
+  
+  padding: 14px 16px !important; /* Збільшив відступи, щоб кнопки стали трохи масивнішими */
+  font-size: 14px !important;
+  border-radius: 12px !important;
+  border: none !important;
+  background-color: #3b82f6 !important;
+  color: white !important;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out !important;
+  font-weight: 600 !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.3 !important;
+  margin: 0 !important;
 }
 
-/* === ДОДАТКОВІ СТИЛІ ДЛЯ ТЕЛЕФОНІВ ТА ПЛАНШЕТІВ (до 1024px) === */
+.buttons button:hover, .bot-controls > div > button:not(.MuiButton-root):hover {
+  background-color: #2563eb !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3) !important;
+}
+
+/* === ФІКС ДЛЯ ОДНІЄЇ КНОПКИ (Ремонт кнопки "Привіт") === */
+.buttons button:only-child, .bot-controls > div > button:only-child:not(.MuiButton-root) {
+  flex: 0 0 auto !important;
+  max-width: none !important;
+  min-width: 180px !important;
+  margin: 0 auto !important;
+  white-space: nowrap !important; /* Жорстко забороняємо розривати слова */
+}
+
+/* ==========================================
+   4. АДАПТИВНІСТЬ ДЛЯ ЧАТ-БОТА (МОБІЛЬНА ВЕРСІЯ)
+========================================== */
+.mobile-menu-btn { display: none !important; }
+.header-title { flex-grow: 1; }
+
+/* ПЛАНШЕТИ (По 3 кнопки в ряд) */
 @media screen and (max-width: 1024px) { 
+  .buttons button, .bot-controls > div > button:not(.MuiButton-root) {
+    flex: 0 0 calc((100% - 20px) / 3) !important;
+    max-width: calc((100% - 20px) / 3) !important;
+  }
   
-  /* Змушуємо одинарну кнопку розтягнутися в ширину */
-  .bot-controls > div > button {
-    display: flex !important;
-    justify-content: center;
-    align-items: center;
-    width: calc(100% - 30px) !important; /* Розтягуємо, залишаючи невеликі відступи від країв екрану */
-    max-width: 100% !important;
-    padding: 18px 0 !important; /* Прибираємо бокові відступи, щоб працювала ширина 100% */
-    font-size: 18px !important;
-    border-radius: 16px !important;
-    box-shadow: 0 8px 25px rgba(56, 189, 248, 0.3) !important;
-    margin: 0 auto !important; /* Центруємо кнопку на екрані */
+  .buttons button:only-child, .bot-controls > div > button:only-child:not(.MuiButton-root) {
+    max-width: none !important;
   }
 }
 
-/* МЕДІА-ЗАПИТ ДЛЯ ТЕЛЕФОНІВ ТА ПЛАНШЕТІВ (до 768px) */
+/* СМАРТФОНИ (Мобільне меню та розмітка) */
 @media screen and (max-width: 768px) {
+  .bot-layout { display: block !important; height: 100vh; width: 100vw; overflow: hidden; }
+  .bot-sidebar { position: fixed !important; left: 0; top: 0; width: 280px !important; max-width: 85vw; height: 100vh; z-index: 1050 !important; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+  .bot-sidebar.mobile-open { transform: translateX(0) !important; box-shadow: 4px 0 25px rgba(0, 0, 0, 0.6) !important; }
+  .bot-content { width: 100% !important; height: 100vh; margin-left: 0 !important; display: flex; flex-direction: column; }
+  .mobile-menu-btn { display: inline-flex !important; }
+  .mobile-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(3px); z-index: 1040 !important; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   
-  /* Відключаємо режим "в один ряд" для всього екрану */
-  .bot-layout {
-    display: block !important; 
-    height: 100vh;
-    width: 100vw;
-    overflow: hidden;
-  }
+  .bot-header-simple { padding: 15px 20px; }
+  .bot-chat-area { padding: 20px; }
+  .bot-chat-area [class*="bot"], .bot-chat-area .bot, .bot-chat-area [class*="user"], .bot-chat-area .user, .user { max-width: 85% !important; }
 
-  /* Жорстко ховаємо сайдбар за лівий край екрану */
-  .bot-sidebar {
-    position: fixed !important;
-    left: 0;
-    top: 0;
-    width: 280px !important; /* Фіксована ширина меню */
-    max-width: 85vw;
-    height: 100vh;
-    z-index: 1050 !important;
-    transform: translateX(-100%); /* Сховано за екраном */
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  /* Клас, який висуває меню при кліку на бургер */
-  .bot-sidebar.mobile-open {
-    transform: translateX(0) !important;
-    box-shadow: 4px 0 25px rgba(0, 0, 0, 0.6) !important;
-  }
-
-  /* Чат тепер займає всі 100% ширини екрану */
-  .bot-content {
-    width: 100% !important;
-    height: 100vh;
-    margin-left: 0 !important;
-    display: flex;
-    flex-direction: column;
-  }
-
-  /* Показуємо кнопку-бургер */
-  .mobile-menu-btn {
-    display: inline-flex !important;
-  }
-
-  /* Темний фон, коли меню відкрите */
-  .mobile-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(3px);
-    z-index: 1040 !important; /* Під сайдбаром, але над чатом */
-    animation: fadeIn 0.3s ease;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  /* Зменшуємо відступи в шапці на мобільних */
-  .bot-header-simple {
-    padding: 15px 20px; 
-  }
-
-  /* Даємо бульбашкам чату більше місця, щоб текст не сплющувався */
-  .bot-chat-area {
-    padding: 20px; 
+  /* Мобільні кнопки: по 2 в ряд */
+  .buttons button, .bot-controls > div > button:not(.MuiButton-root) {
+    flex: 1 1 calc(50% - 10px) !important;
+    max-width: 100% !important;
+    padding: 12px 8px !important;
+    font-size: 13px !important;
+    min-height: 44px !important;
   }
   
-  .bot-chat-area [class*="bot"], .bot-chat-area .bot,
-  .bot-chat-area [class*="user"], .bot-chat-area .user, .user {
-    max-width: 85% !important; /* Розширюємо бульбашки до 85% екрану */
-  }
-
-  /* === КОМПАКТНІ КНОПКИ В ЧАТІ (ДЛЯ МОБІЛЬНИХ) === */
-  
-  /* Перетворюємо контейнер кнопок на гнучку сітку */
-  .bot-controls > div > div, 
-  .bot-controls > div {
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: wrap !important;
-    gap: 8px !important;
-    justify-content: center;
-  }
-
-  /* Зменшуємо самі кнопки і ставимо по 2 в ряд */
-  .bot-controls button {
-    flex: 1 1 calc(50% - 10px) !important; /* Дві кнопки поруч */
-    padding: 10px 8px !important; /* Робимо їх нижчими */
-    font-size: 13px !important; /* Менший шрифт */
-    margin: 0 !important; /* Прибираємо старі відступи */
-    border-radius: 12px !important; /* Акуратніші кути */
-    line-height: 1.2 !important;
-    min-height: 44px !important; /* Оптимальний розмір для натискання пальцем */
-  }
-  
-  /* Якщо кнопок непарна кількість, остання розтягнеться на всю ширину */
-  .bot-controls button:last-child:nth-child(odd) {
+  .buttons button:last-child:nth-child(odd), .bot-controls > div > button:last-child:nth-child(odd):not(.MuiButton-root) {
     flex: 1 1 100% !important;
+  }
+  
+  /* Фікс кнопки "Привіт" на мобільному */
+  .buttons button:only-child, .bot-controls > div > button:only-child:not(.MuiButton-root) {
+    flex: 0 0 auto !important;
+    min-width: 200px !important;
+    white-space: nowrap !important;
   }
 }

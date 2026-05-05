@@ -27,9 +27,10 @@ import GroupIcon from '@mui/icons-material/Group';
 import DescriptionIcon from '@mui/icons-material/Description';
 import TableViewIcon from '@mui/icons-material/TableView';
 
+// === НОВА БІБЛІОТЕКА ГРАФІКІВ ===
+import Chart from "react-apexcharts";
 
-// === ГРАФІКИ ТА ЕКСПОРТ ===
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend, Tooltip, ResponsiveContainer } from "recharts";
+// === ЕКСПОРТ ===
 import { Document, Packer, Paragraph, TextRun, Table as WordTable, TableRow as WordRow, TableCell as WordCell, WidthType, AlignmentType, VerticalAlign, BorderStyle } from "docx";
 import { saveAs } from "file-saver";
 import * as XLSX from "xlsx";
@@ -37,7 +38,7 @@ import * as XLSX from "xlsx";
 const API_URL = "http://localhost/backend"; 
 const PIE_COLORS = ['#38bdf8', '#fbbf24', '#4ade80', '#f87171', '#c084fc', '#f472b6'];
 
-// 1. ПРОСТИЙ СЛОВНИК СТАТУСІВ (Замість довгих перевірок)
+// === СЛОВНИКИ ТА СТИЛІ ===
 const STATUS_LABELS = {
   new: "Нове",
   in_progress: "В роботі",
@@ -47,11 +48,35 @@ const STATUS_LABELS = {
   spam: "Спам"
 };
 
-// 2. ПРОСТА ФУНКЦІЯ ДЛЯ КОЛЬОРІВ СТАТУСУ В ТАБЛИЦІ
+const APPEAL_LABELS = {
+  complaint: { text: "Скарга", color: "#f87171", icon: "🔴" },
+  proposal: { text: "Пропозиція", color: "#4ade80", icon: "🟢" },
+  inquiry: { text: "Звернення", color: "#38bdf8", icon: "🔵" }
+};
+
 const getStatusStyle = (status, isDark) => {
   if (status === 'archived') return { bgcolor: isDark ? 'rgba(156, 163, 175, 0.2)' : '#e2e8f0', color: '#64748b' };
   if (status === 'spam') return { bgcolor: isDark ? 'rgba(248, 113, 113, 0.2)' : '#fee2e2', color: '#f87171' };
   return { bgcolor: isDark ? "rgba(255,255,255,0.05)" : "#f8fafc", color: isDark ? "white" : "#0f172a" };
+};
+
+const TonalityBadge = ({ tonality, isDark }) => {
+  const styles = {
+    positive: { bg: isDark ? 'rgba(74, 222, 128, 0.15)' : '#dcfce7', color: '#4ade80', text: 'Позитивне', icon: '😊' },
+    neutral:  { bg: isDark ? 'rgba(250, 204, 21, 0.15)' : '#fef9c3', color: '#facc15', text: 'Нейтральне', icon: '😐' },
+    negative: { bg: isDark ? 'rgba(248, 113, 113, 0.15)' : '#fee2e2', color: '#f87171', text: 'Негативне', icon: '😠' }
+  };
+  const current = styles[tonality] || styles.neutral;
+
+  return (
+    <span style={{
+      backgroundColor: current.bg, color: current.color,
+      padding: '4px 8px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+      display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '6px'
+    }}>
+      {current.icon} {current.text}
+    </span>
+  );
 };
 
 // === КОМПОНЕНТИ ІНТЕРФЕЙСУ ===
@@ -75,9 +100,9 @@ function Sidebar({ view, setView, onLogout, onReturnToBot, isMobileMenuOpen }) {
         <Typography variant="caption" sx={{ color: '#9ca3af', display: 'block', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: '11px' }}>Адміністративна панель</Typography>
       </Box>
       <Box sx={{ px: 2 }}>
-        <Button startIcon={<DashboardIcon />} fullWidth className={`nav-btn ${view === "dashboard" ? "active" : ""}`} onClick={() => setView("dashboard")}>Дашборд</Button>
+        <Button startIcon={<DashboardIcon />} fullWidth className={`nav-btn ${view === "dashboard" ? "active" : ""}`} onClick={() => setView("dashboard")}>Аналітика системи</Button>
         <Button startIcon={<ListIcon />} fullWidth className={`nav-btn ${view === "table" ? "active" : ""}`} onClick={() => setView("table")}>Активні звернення</Button>
-        <Button startIcon={<ArchiveIcon />} fullWidth className={`nav-btn ${view === "archive" ? "active" : ""}`} onClick={() => setView("archive")}>Архів</Button>
+        <Button startIcon={<ArchiveIcon />} fullWidth className={`nav-btn ${view === "archive" ? "active" : ""}`} onClick={() => setView("archive")}>Архів звернень</Button>
         <Button startIcon={<ReportIcon />} fullWidth className={`nav-btn ${view === "spam" ? "active" : ""}`} onClick={() => setView("spam")}>Спам</Button>
       </Box>
       <Box sx={{ mt: "auto", p: 2 }}>
@@ -114,7 +139,10 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
     setLoading(true);
     try {
       const res = await fetch(`${API_URL}/get-complaints.php`);
-      if (res.ok) setComplaints((await res.json()).data || []);
+      if (res.ok) {
+        const jsonData = await res.json();
+        setComplaints(Array.isArray(jsonData) ? jsonData : []);
+      }
     } catch (err) { setSnackbar({ open: true, message: "Помилка завантаження скарг", type: "error" }); } 
 
     try {
@@ -126,7 +154,7 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
 
   useEffect(() => { fetchData(); }, []);
 
-// === ЕКСПОРТ В WORD ===
+  // === ЕКСПОРТ (Word / Excel) ===
   const exportToWord = () => {
     const doc = new Document({
       sections: [{
@@ -134,7 +162,6 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
         children: [
           new WordTable({
             width: { size: 100, type: WidthType.PERCENTAGE },
-            borders: { top: {style: 'none'}, bottom: {style: 'none'}, left: {style: 'none'}, right: {style: 'none'}, insideHorizontal: {style: 'none'}, insideVertical: {style: 'none'} },
             rows: [
               new WordRow({
                 children: [
@@ -153,6 +180,7 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
               new WordRow({
                 children: [
                   new WordCell({ shading: { fill: "F3F4F6" }, margins: { top: 100, bottom: 100, left: 100, right: 100 }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Відправник", bold: true, size: 24, font: "Arial" })] })] }),
+                  new WordCell({ shading: { fill: "F3F4F6" }, margins: { top: 100, bottom: 100, left: 100, right: 100 }, children: [new Paragraph({ children: [new TextRun({ text: "Тип", bold: true, size: 24, font: "Arial" })] })] }),
                   new WordCell({ shading: { fill: "F3F4F6" }, margins: { top: 100, bottom: 100, left: 100, right: 100 }, children: [new Paragraph({ children: [new TextRun({ text: "Категорія", bold: true, size: 24, font: "Arial" })] })] }),
                   new WordCell({ shading: { fill: "F3F4F6" }, margins: { top: 100, bottom: 100, left: 100, right: 100 }, children: [new Paragraph({ children: [new TextRun({ text: "Повідомлення", bold: true, size: 24, font: "Arial" })] })] }),
                   new WordCell({ shading: { fill: "F3F4F6" }, margins: { top: 100, bottom: 100, left: 100, right: 100 }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Статус", bold: true, size: 24, font: "Arial" })] })] }),
@@ -166,12 +194,15 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
                       new Paragraph({ 
                         children: [
                           new TextRun({ text: Number(item.is_anonymous) === 1 || !item.full_name ? "Анонімно" : item.full_name, bold: true, size: 22, font: "Arial" }),
-                          ...(item.student_group ? [new TextRun({ text: `Група: ${item.student_group}`, size: 20, font: "Arial", color: "666666", break: 1 })] : []),
-                          ...(item.contact_type !== 'none' && item.contact_value ? [new TextRun({ text: `${item.contact_type === 'phone' ? 'Тел' : 'Email'}: ${item.contact_value}`, size: 20, font: "Arial", color: "0066cc", break: 1 })] : [])
+                          ...(item.student_group ? [new TextRun({ text: `\nГрупа: ${item.student_group}`, size: 18, font: "Arial", color: "666666", break: 1 })] : []),
+                          ...(item.contact_type !== 'none' && item.contact_value ? [
+                            new TextRun({ text: `\n${item.contact_type === 'phone' ? 'Тел' : 'Email'}: ${item.contact_value}`, size: 18, font: "Arial", color: "0066cc", bold: true, break: 1 })
+                          ] : [])
                         ] 
                       })
                     ] 
                   }),
+                  new WordCell({ margins: { top: 100, bottom: 100, left: 100, right: 100 }, children: [new Paragraph({ children: [new TextRun({ text: APPEAL_LABELS[item.appeal_type]?.text || "Скарга", size: 22, font: "Arial" })] })] }),
                   new WordCell({ margins: { top: 100, bottom: 100, left: 100, right: 100 }, children: [new Paragraph({ children: [new TextRun({ text: item.category || "-", size: 22, font: "Arial" })] })] }),
                   new WordCell({ margins: { top: 100, bottom: 100, left: 100, right: 100 }, children: [new Paragraph({ children: [new TextRun({ text: item.message || "-", size: 22, font: "Arial" })] })] }),
                   new WordCell({ margins: { top: 100, bottom: 100, left: 100, right: 100 }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: STATUS_LABELS[item.status] || "Нове", size: 22, font: "Arial" })] })] }),
@@ -184,18 +215,15 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
     });
     Packer.toBlob(doc).then(blob => {
       saveAs(blob, `Report_ZPFK_${new Date().toLocaleDateString()}.docx`);
-      setSnackbar({ open: true, message: "Звіт Word згенеровано!", type: "success" });
     });
   };
 
-  // === ЕКСПОРТ В EXCEL (БЕЗ ФІЛЬТРІВ - ПОВНА БАЗА) ===
   const exportToExcel = () => {
-    // Зверни увагу: тут ми використовуємо complaints (усю базу) замість displayedComplaints
     const dataForExcel = complaints.map(item => ({
       "Відправник": Number(item.is_anonymous) === 1 || !item.full_name ? "Анонімно" : item.full_name,
       "Група": item.student_group || "-",
-      "Контакти": item.contact_type !== 'none' && item.contact_value ? `${item.contact_type === 'phone' ? '📞' : '📧'} ${item.contact_value}` : "-",
-      "Дата": new Date(item.created_at).toLocaleDateString(),
+      "Контактні дані": item.contact_type !== 'none' && item.contact_value ? `${item.contact_type === 'phone' ? 'Тел: ' : 'Email: '}${item.contact_value}` : "Не вказано",
+      "Тип": APPEAL_LABELS[item.appeal_type]?.text || "Скарга",
       "Категорія": item.category || "-",
       "Повідомлення": item.message || "-",
       "Статус": STATUS_LABELS[item.status] || "Нове"
@@ -203,13 +231,14 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
 
     const worksheet = XLSX.utils.json_to_sheet(dataForExcel);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Всі Звернення");
-    
-    // Робимо колонки красивими і широкими
-    worksheet['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 25 }, { wch: 12 }, { wch: 20 }, { wch: 50 }, { wch: 15 }];
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Звернення");
 
-    XLSX.writeFile(workbook, `Full_Report_ZPFK_${new Date().toLocaleDateString()}.xlsx`);
-    setSnackbar({ open: true, message: "Повний звіт Excel згенеровано!", type: "success" });
+    worksheet['!cols'] = [
+      { wch: 20 }, { wch: 12 }, { wch: 25 }, { wch: 15 }, { wch: 20 }, { wch: 50 }, { wch: 15 }
+    ];
+
+    XLSX.writeFile(workbook, `Report_ZPFK_${new Date().toLocaleDateString()}.xlsx`);
+    setSnackbar({ open: true, message: "Звіт Excel згенеровано!", type: "success" });
   };
 
   const handleDelete = async (id) => {
@@ -229,7 +258,7 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
     } catch { setSnackbar({ open: true, message: "Помилка оновлення", type: "error" }); }
   };
 
-  // === ОБРОБКА ДАНИХ (Фільтри, сортування, статистика) ===
+  // === ОБРОБКА ДАНИХ ДЛЯ ГРАФІКІВ ===
   const stats = useMemo(() => {
     const active = complaints.filter(c => c.status !== "archived" && c.status !== "spam");
     return {
@@ -240,44 +269,67 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
     };
   }, [complaints]);
 
-  const pieData = useMemo(() => {
+  const appealTypeData = useMemo(() => {
+    const active = complaints.filter(c => c.status !== "archived" && c.status !== "spam");
+    const map = { complaint: 0, proposal: 0, inquiry: 0 };
+    active.forEach(c => { if (map.hasOwnProperty(c.appeal_type)) map[c.appeal_type]++; });
+    return {
+      series: [map.complaint, map.proposal, map.inquiry],
+      labels: ["Скарги", "Пропозиції", "Звернення"]
+    };
+  }, [complaints]);
+
+  const categoryData = useMemo(() => {
+    const active = complaints.filter(c => c.status !== "archived" && c.status !== "spam");
     const map = {};
-    complaints.filter(c => c.status !== "archived" && c.status !== "spam").forEach(c => { map[c.category] = (map[c.category] || 0) + 1; });
-    return Object.keys(map).map(k => ({ name: k, value: map[k] }));
+    active.forEach(c => { map[c.category] = (map[c.category] || 0) + 1; });
+    const keys = Object.keys(map);
+    return { series: keys.map(k => map[k]), labels: keys };
+  }, [complaints]);
+
+  const sentimentData = useMemo(() => {
+    const active = complaints.filter(c => c.status !== "archived" && c.status !== "spam");
+    let pos = 0, neu = 0, neg = 0;
+    active.forEach(c => {
+      if (c.tonality === 'positive') pos++;
+      else if (c.tonality === 'negative') neg++;
+      else neu++; 
+    });
+    const rawData = [
+      { label: "Позитивні", value: pos, color: '#4ade80' },
+      { label: "Нейтральні", value: neu, color: '#facc15' },
+      { label: "Негативні", value: neg, color: '#f87171' }
+    ].filter(item => item.value > 0);
+    return { series: rawData.map(item => item.value), labels: rawData.map(item => item.label), colors: rawData.map(item => item.color) };
   }, [complaints]);
 
   const barData = useMemo(() => {
     const active = complaints.filter(c => c.status !== "archived" && c.status !== "spam");
-    return [
-      { name: "Нові", кількість: active.filter(c => c.status === "new" || !c.status).length },
-      { name: "В роботі", кількість: active.filter(c => c.status === "in_progress").length },
-      { name: "Готово", кількість: active.filter(c => c.status === "resolved").length },
-      { name: "Відмова", кількість: active.filter(c => c.status === "rejected").length }
+    const data = [
+      { name: "Нові", value: active.filter(c => c.status === "new" || !c.status).length },
+      { name: "В роботі", value: active.filter(c => c.status === "in_progress").length },
+      { name: "Готово", value: active.filter(c => c.status === "resolved").length },
+      { name: "Відмова", value: active.filter(c => c.status === "rejected").length }
     ];
+    return { series: [{ name: 'Кількість', data: data.map(d => d.value) }], categories: data.map(d => d.name) };
   }, [complaints]);
 
   const displayedComplaints = useMemo(() => {
     let result = [...complaints];
-    
-    // Фільтр за розділом адмінки
     if (view === "table") result = result.filter(c => c.status !== "archived" && c.status !== "spam");
     else if (view === "archive") result = result.filter(c => c.status === "archived");
     else if (view === "spam") result = result.filter(c => c.status === "spam");
 
-    // Фільтр швидких кнопок
     if (tableFilter !== "all" && view === "table") {
       if (tableFilter === "new") result = result.filter(c => c.status === 'new' || !c.status);
       else if (tableFilter === "anonymous") result = result.filter(c => Number(c.is_anonymous) === 1);
       else if (tableFilter === "tech") result = result.filter(c => c.category === 'Технічна проблема');
     }
 
-    // Живий пошук
     if (search.trim() !== "") {
       const q = search.toLowerCase();
       result = result.filter(c => (c.message?.toLowerCase().includes(q)) || (c.tracking_code?.toLowerCase().includes(q)) || (c.full_name?.toLowerCase().includes(q)));
     }
-
-    // Сортування
     result.sort((a, b) => {
       const timeDiff = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       return sortOrder === "desc" ? timeDiff : -timeDiff;
@@ -285,34 +337,74 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
     return result;
   }, [complaints, view, tableFilter, search, sortOrder]);
 
-  const customTooltipStyle = { 
-    borderRadius: '12px', border: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)', 
-    backgroundColor: isDarkMode ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)', color: isDarkMode ? '#fff' : '#0f172a', backdropFilter: 'blur(10px)', fontSize: '13px'
+
+  // === КОНФІГУРАЦІЯ APEXCHARTS ===
+  const chartThemeColor = isDarkMode ? '#e2e8f0' : '#0f172a';
+
+  const apexAppealOptions = {
+    chart: { background: 'transparent', toolbar: { show: false } },
+    theme: { mode: isDarkMode ? 'dark' : 'light' },
+    labels: appealTypeData.labels,
+    colors: ['#f87171', '#4ade80', '#38bdf8'],
+    dataLabels: { enabled: false },
+    stroke: { show: false },
+    legend: { position: 'bottom', fontSize: '12px', labels: { colors: chartThemeColor } },
+    plotOptions: { pie: { donut: { size: '70%', labels: { show: true, total: { show: true, label: 'Всього', color: chartThemeColor, formatter: (w) => w.globals.seriesTotals.reduce((a, b) => a + b, 0) } } } } }
+  };
+
+  const apexCategoryOptions = {
+    chart: { background: 'transparent', toolbar: { show: false } },
+    theme: { mode: isDarkMode ? 'dark' : 'light' },
+    labels: categoryData.labels,
+    colors: PIE_COLORS,
+    dataLabels: { enabled: false },
+    stroke: { show: false },
+    legend: { position: 'bottom', fontSize: '12px', labels: { colors: chartThemeColor }, itemMargin: { horizontal: 5, vertical: 2 } },
+    plotOptions: { pie: { donut: { size: '70%', labels: { show: true, name: { show: false }, value: { show: true, fontSize: '22px', fontWeight: 700, color: chartThemeColor, offsetY: 8, formatter: (val) => val }, total: { show: true, label: 'Всього', fontSize: '14px', color: isDarkMode ? '#94a3b8' : '#64748b', formatter: (w) => w.globals.seriesTotals.reduce((a, b) => a + b, 0) } } } } },
+    tooltip: { y: { formatter: (val) => `${val} звернень` } }
+  };
+
+  const apexSentimentOptions = {
+    chart: { background: 'transparent', toolbar: { show: false } },
+    theme: { mode: isDarkMode ? 'dark' : 'light' },
+    labels: sentimentData.labels,
+    colors: sentimentData.colors,
+    dataLabels: { enabled: false },
+    stroke: { show: false },
+    legend: { position: 'bottom', fontSize: '12px', labels: { colors: chartThemeColor } },
+    plotOptions: { pie: { donut: { size: '70%' } } }
+  };
+
+  const apexBarOptions = {
+    chart: { background: 'transparent', toolbar: { show: false } },
+    theme: { mode: isDarkMode ? 'dark' : 'light' },
+    xaxis: { categories: barData.categories, labels: { style: { colors: chartThemeColor } } },
+    yaxis: { labels: { style: { colors: chartThemeColor } } },
+    colors: ['#38bdf8'],
+    plotOptions: { bar: { borderRadius: 6, columnWidth: '40%' } },
+    dataLabels: { enabled: false },
+    grid: { borderColor: isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)" }
   };
 
   const dropdownMenuProps = {
     PaperProps: {
       sx: {
-        bgcolor: isDarkMode ? '#1e293b' : '#ffffff', color: isDarkMode ? '#f3f4f6' : '#0f172a', border: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.08)',
-        boxShadow: '0 10px 25px rgba(0,0,0,0.2)', borderRadius: '8px', mt: 0.5,
-        '& .MuiMenuItem-root:hover': { bgcolor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' },
-        '& .Mui-selected': { bgcolor: isDarkMode ? 'rgba(56, 189, 248, 0.15) !important' : 'rgba(56, 189, 248, 0.1) !important' }
+        bgcolor: isDarkMode ? '#1e293b' : '#ffffff', color: isDarkMode ? '#f3f4f6' : '#0f172a',
+        '& .MuiMenuItem-root:hover': { bgcolor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }
       }
     }
   };
 
-  const handleViewChange = (newView) => { setView(newView); setIsMobileMenuOpen(false); };
-
   return (
     <Box className={`dashboard-wrapper ${isDarkMode ? 'dark-theme' : 'light-theme'}`}>
       {isMobileMenuOpen && <div className="mobile-overlay" onClick={() => setIsMobileMenuOpen(false)}></div>}
-      <Sidebar view={view} setView={handleViewChange} onLogout={onLogout} onReturnToBot={onReturnToBot} isMobileMenuOpen={isMobileMenuOpen} />
+      <Sidebar view={view} setView={(v) => { setView(v); setIsMobileMenuOpen(false); }} onLogout={onLogout} onReturnToBot={onReturnToBot} isMobileMenuOpen={isMobileMenuOpen} />
       
       <Box className="main-content">
         <AppBar position="static" className="topbar">
           <Toolbar>
             <IconButton edge="start" onClick={() => setIsMobileMenuOpen(true)} sx={{ mr: 2, display: { md: 'none' }, color: isDarkMode ? '#9ca3af' : '#64748b' }}><MenuIcon /></IconButton>
-            <Typography variant="h6" sx={{ color: isDarkMode ? "#f3f4f6" : "#0f172a", fontWeight: 700, letterSpacing: '-0.02em', flexGrow: 1 }}>
+            <Typography variant="h6" sx={{ color: isDarkMode ? "#f3f4f6" : "#0f172a", fontWeight: 700, flexGrow: 1 }}>
               {view === "dashboard" ? "Аналітика системи" : view === "archive" ? "Архів звернень" : view === "spam" ? "Спам" : "Активні звернення"}
             </Typography>
             <IconButton onClick={toggleTheme} sx={{ color: isDarkMode ? '#fbbf24' : '#64748b' }}>{isDarkMode ? <LightModeIcon /> : <DarkModeIcon />}</IconButton>
@@ -326,54 +418,41 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
             <>
               {view === "dashboard" && (
                 <> 
-                  <Grid container spacing={2} sx={{ mb: 2 }}>
-                    <Grid item xs={6} md={6}><StatCard title="Відвідувачі" value={dailyVisitors} color="#c084fc" icon={<GroupIcon/>} /></Grid>
-                    <Grid item xs={6} md={6}><StatCard title="Нові скарги" value={stats.newC} color="#4ade80" icon={<CheckCircleIcon/>} onClick={() => { setView("table"); setTableFilter("new"); }} /></Grid>
-                  </Grid>
-
                   <Grid container spacing={2} sx={{ mb: 4 }}>
-                    <Grid item xs={4} md={4}><StatCard title="Активні" value={stats.total} color="#38bdf8" icon={<AssessmentIcon/>} onClick={() => { setView("table"); setTableFilter("all"); }} /></Grid>
-                    <Grid item xs={4} md={4}><StatCard title="Анонімні" value={stats.anon} color="#fbbf24" icon={<BugReportIcon/>} onClick={() => { setView("table"); setTableFilter("anonymous"); }} /></Grid>
-                    <Grid item xs={4} md={4}><StatCard title="Технічні" value={stats.tech} color="#f87171" icon={<SettingsIcon/>} onClick={() => { setView("table"); setTableFilter("tech"); }} /></Grid>
+                    <Grid item xs={6} md><StatCard title="Відвідувачі" value={dailyVisitors} color="#c084fc" icon={<GroupIcon/>} /></Grid>
+                    <Grid item xs={6} md><StatCard title="Нові скарги" value={stats.newC} color="#4ade80" icon={<CheckCircleIcon/>} onClick={() => { setView("table"); setTableFilter("new"); }} /></Grid>
+                    <Grid item xs={6} md><StatCard title="Активні" value={stats.total} color="#38bdf8" icon={<AssessmentIcon/>} onClick={() => { setView("table"); setTableFilter("all"); }} /></Grid>
+                    <Grid item xs={6} md><StatCard title="Анонімні" value={stats.anon} color="#fbbf24" icon={<BugReportIcon/>} onClick={() => { setView("table"); setTableFilter("anonymous"); }} /></Grid>
+                    <Grid item xs={6} md><StatCard title="Технічні" value={stats.tech} color="#f87171" icon={<SettingsIcon/>} onClick={() => { setView("table"); setTableFilter("tech"); }} /></Grid>
                   </Grid>
 
                   <Grid container spacing={3}>
-                    <Grid item xs={12} md={8}> 
+                    <Grid item xs={12} md={6}> 
                       <Paper className="glass-panel">
-                        <Typography className="panel-title">Звернення за категоріями</Typography>
-                        <Box className="chart-container" style={{ height: '300px' }}>
-                          <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                              <Pie data={pieData} cx="50%" cy="45%" innerRadius={70} outerRadius={100} paddingAngle={8} cornerRadius={12} dataKey="value" stroke="none">
-                                {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />)}
-                              </Pie>
-                              <Tooltip contentStyle={customTooltipStyle} />
-                              <Legend iconType="circle" layout="horizontal" verticalAlign="bottom" align="center" wrapperStyle={{ paddingTop: '10px' }} />
-                            </PieChart>
-                          </ResponsiveContainer>
+                        <Typography className="panel-title">Типи звернень</Typography>
+                        <Box sx={{ height: 320, mt: 2 }}><Chart options={apexAppealOptions} series={appealTypeData.series} type="donut" height="100%" /></Box>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={12} md={6}> 
+                      <Paper className="glass-panel">
+                        <Typography className="panel-title">Категорії звернень</Typography>
+                        <Box sx={{ height: 320, mt: 2 }}>
+                            {categoryData.series.length > 0 ? <Chart options={apexCategoryOptions} series={categoryData.series} type="donut" height="100%" /> : <Typography sx={{ textAlign: 'center', color: '#9ca3af', mt: 10 }}>Немає даних</Typography>}
                         </Box>
                       </Paper>
                     </Grid>
-
-                    <Grid item xs={12} md={4}>
+                    <Grid item xs={12} md={6}> 
+                      <Paper className="glass-panel">
+                        <Typography className="panel-title">Тональність</Typography>
+                        <Box sx={{ height: 320, mt: 2 }}>
+                            {sentimentData.series.length > 0 ? <Chart options={apexSentimentOptions} series={sentimentData.series} type="donut" height="100%" /> : <Typography sx={{ textAlign: 'center', color: '#9ca3af', mt: 10 }}>Немає даних</Typography>}
+                        </Box>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
                       <Paper className="glass-panel">
                         <Typography className="panel-title">Статус обробки</Typography>
-                        <Box className="chart-container" style={{ height: '300px' }}>
-                          <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={barData} margin={{ top: 10, right: 10, left: -20, bottom: 30 }}>
-                              <defs>
-                                <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#38bdf8" stopOpacity={1}/><stop offset="95%" stopColor="#38bdf8" stopOpacity={0.3}/>
-                                </linearGradient>
-                              </defs>
-                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.05)"} />
-                              <XAxis dataKey="name" angle={-30} textAnchor="end" height={60} interval={0} tickMargin={5} tick={{ fontSize: 12, fill: isDarkMode ? "#9ca3af" : "#64748b" }} axisLine={false} tickLine={false} />
-                              <YAxis allowDecimals={false} axisLine={false} tickLine={false} stroke={isDarkMode ? "#9ca3af" : "#64748b"} />
-                              <Tooltip cursor={{ fill: isDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)' }} contentStyle={customTooltipStyle} />
-                              <Bar dataKey="кількість" fill="url(#colorCount)" maxBarSize={50} radius={[6, 6, 0, 0]} />
-                            </BarChart>
-                          </ResponsiveContainer>
-                        </Box>
+                        <Box sx={{ height: 320, mt: 2 }}><Chart options={apexBarOptions} series={barData.series} type="bar" height="100%" /></Box>
                       </Paper>
                     </Grid>
                   </Grid>
@@ -383,92 +462,75 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
               {(view === "table" || view === "archive" || view === "spam") && (
                  <>
                   <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 3, alignItems: "center" }}>
-                    <TextField placeholder="Пошук за кодом..." className="search-input" value={search} onChange={(e) => setSearch(e.target.value)} sx={{ flexGrow: 1, minWidth: '250px' }} />
+                    <TextField placeholder="Пошук за текстом..." className="search-input" value={search} onChange={(e) => setSearch(e.target.value)} sx={{ flexGrow: 1, minWidth: '250px' }} />
                     <Box sx={{ display: 'flex', gap: 1, width: { xs: '100%', sm: 'auto' } }}>
-                      <Button variant="contained" startIcon={<DescriptionIcon />} onClick={exportToWord} sx={{ bgcolor: '#3b82f6', '&:hover': { bgcolor: '#2563eb' }, borderRadius: '10px', textTransform: 'none', fontWeight: 600, flex: 1, px: 2 }}>Word</Button>
-                      <Button variant="contained" startIcon={<TableViewIcon />} onClick={exportToExcel} sx={{ bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' }, borderRadius: '10px', textTransform: 'none', fontWeight: 600, flex: 1, px: 2 }}>Excel</Button>
+                      <Button variant="contained" startIcon={<DescriptionIcon />} onClick={exportToWord} sx={{ bgcolor: '#3b82f6' }}>Word</Button>
+                      <Button variant="contained" startIcon={<TableViewIcon />} onClick={exportToExcel} sx={{ bgcolor: '#10b981' }}>Excel</Button>
                     </Box>
-                    <Select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} size="small" startAdornment={<SortIcon sx={{ ml: 1, mr: 1, color: '#9ca3af' }} />} MenuProps={dropdownMenuProps} sx={{ color: isDarkMode ? "white" : "#0f172a", bgcolor: isDarkMode ? "rgba(255,255,255,0.05)" : "#ffffff", borderRadius: 2, '.MuiOutlinedInput-notchedOutline': { borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' } }}>
+                    <Select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} size="small" startAdornment={<SortIcon sx={{ mx: 1, color: '#9ca3af' }} />} MenuProps={dropdownMenuProps} sx={{ color: isDarkMode ? "white" : "#0f172a", bgcolor: isDarkMode ? "rgba(255,255,255,0.05)" : "#ffffff", borderRadius: 2 }}>
                       <MenuItem value="desc">Спочатку нові</MenuItem>
                       <MenuItem value="asc">Спочатку старі</MenuItem>
                     </Select>
-                    {tableFilter !== "all" && view === "table" && <Button variant="contained" color="error" onClick={() => setTableFilter("all")}>Скинути фільтр</Button>}
                   </Box>
 
                   <Paper className="glass-panel" sx={{ p: 0, overflow: 'hidden' }}>
-                    <Box sx={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                    <Box sx={{ width: '100%', overflowX: 'auto' }}>
                       <Table className="custom-table" sx={{ minWidth: 900 }}>
                         <TableHead>
                           <TableRow>
-                            {/* 1. ЗМІНИЛИ ЗАГОЛОВОК З "Код" НА "Відправник" */}
-                            <TableCell sx={{ color: '#9ca3af', minWidth: '150px' }}>Відправник</TableCell>
-                            <TableCell sx={{ color: '#9ca3af', minWidth: '100px' }}>Дата</TableCell>
-                            <TableCell sx={{ color: '#9ca3af', minWidth: '150px' }}>Категорія</TableCell>
-                            <TableCell sx={{ color: '#9ca3af', minWidth: '250px' }}>Повідомлення</TableCell>
-                            <TableCell sx={{ color: '#9ca3af', minWidth: '150px' }}>Статус</TableCell>
-                            <TableCell align="center" sx={{ color: '#9ca3af', minWidth: '100px' }}>Дії</TableCell>
+                            <TableCell sx={{ color: '#9ca3af' }}>Відправник</TableCell>
+                            <TableCell sx={{ color: '#9ca3af' }}>Дата</TableCell>
+                            <TableCell sx={{ color: '#9ca3af' }}>Тип та Категорія</TableCell>
+                            <TableCell sx={{ color: '#9ca3af' }}>Повідомлення</TableCell>
+                            <TableCell sx={{ color: '#9ca3af' }}>Статус</TableCell>
+                            <TableCell align="center" sx={{ color: '#9ca3af' }}>Дії</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
                           {displayedComplaints.length === 0 ? (
-                            <TableRow><TableCell colSpan={6} align="center" sx={{ color: isDarkMode ? "#9ca3af" : "#64748b", py: 10 }}>Звернень не знайдено</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={6} align="center" sx={{ color: "#9ca3af", py: 10 }}>Звернень не знайдено</TableCell></TableRow>
                           ) : (
-                            // 2. ДОДАЛИ НОВІ ЗМІННІ (full_name, student_group, contact_type, contact_value) В ДЕСТРУКТУРИЗАЦІЮ
-                            displayedComplaints.map(({ id, tracking_code, is_anonymous, created_at, category, message, status, photo_path, full_name, student_group, contact_type, contact_value }) => (
-                              <TableRow key={id} className="table-row">
-                                
-                                {/* 3. НОВИЙ БЛОК ВІДПРАВНИКА ЗАМІСТЬ КОДУ */}
+                            displayedComplaints.map((item) => (
+                              <TableRow key={item.id} className="table-row">
                                 <TableCell>
                                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                     <span style={{ fontWeight: 'bold', color: isDarkMode ? '#e2e8f0' : '#1e293b', fontSize: '15px' }}>
-                                      {Number(is_anonymous) === 1 || !full_name ? "👻 Анонімно" : full_name}
+                                      {Number(item.is_anonymous) === 1 || !item.full_name ? "👻 Анонімно" : item.full_name}
                                     </span>
-                                    
-                                    {student_group && (
-                                      <span style={{ fontSize: '13px', color: '#94a3b8' }}>
-                                        Група: {student_group}
-                                      </span>
-                                    )}
-                                    
-                                    {contact_type !== 'none' && contact_value && (
-                                      <span style={{ fontSize: '13px', color: '#38bdf8', marginTop: '4px' }}>
-                                        {contact_type === 'phone' ? '📞 ' : '📧 '}
-                                        {contact_value}
+                                    {item.student_group && <span style={{ fontSize: '13px', color: '#94a3b8' }}>Група: {item.student_group}</span>}
+                                    {item.contact_type !== 'none' && item.contact_value && (
+                                      <span style={{ fontSize: '13px', color: '#38bdf8', marginTop: '4px', fontWeight: 500 }}>
+                                        {item.contact_type === 'phone' ? '📞 ' : '📧 '} {item.contact_value}
                                       </span>
                                     )}
                                   </Box>
                                 </TableCell>
-
-                                <TableCell sx={{ color: isDarkMode ? '#e2e8f0' : '#1e293b' }}>{new Date(created_at).toLocaleDateString()}</TableCell>
-                                <TableCell sx={{ color: isDarkMode ? '#e2e8f0' : '#1e293b', fontWeight: 600 }}>{category}</TableCell>
-                                <TableCell sx={{ maxWidth: 350, color: isDarkMode ? '#e2e8f0' : '#1e293b' }}>{message}</TableCell>
+                                <TableCell sx={{ color: isDarkMode ? '#e2e8f0' : '#1e293b' }}>{new Date(item.created_at).toLocaleDateString()}</TableCell>
                                 <TableCell>
-                                  <Select
-                                    value={status || "new"} 
-                                    onChange={(e) => handleStatusChange(id, e.target.value)} 
-                                    size="small" MenuProps={dropdownMenuProps}
-                                    sx={{ 
-                                      minWidth: 130, fontSize: '13px', borderRadius: 2, 
-                                      '.MuiOutlinedInput-notchedOutline': { border: 'none' }, 
-                                      '& .MuiSvgIcon-root': { color: isDarkMode ? 'white' : '#0f172a' },
-                                      ...getStatusStyle(status, isDarkMode) 
-                                    }}
-                                  >
+                                  <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                    <span style={{ color: APPEAL_LABELS[item.appeal_type]?.color || '#f87171', fontWeight: 700 }}>{APPEAL_LABELS[item.appeal_type]?.icon} {APPEAL_LABELS[item.appeal_type]?.text}</span>
+                                    <span style={{ fontSize: '12px', color: '#94a3b8' }}>{item.category}</span>
+                                  </Box>
+                                </TableCell>
+                                <TableCell sx={{ maxWidth: 350, color: isDarkMode ? '#e2e8f0' : '#1e293b' }}>
+                                  <Box>{item.message}</Box>
+                                  <TonalityBadge tonality={item.tonality} isDark={isDarkMode} />
+                                </TableCell>
+                                <TableCell>
+                                  <Select value={item.status || "new"} onChange={(e) => handleStatusChange(item.id, e.target.value)} size="small" MenuProps={dropdownMenuProps} sx={{ minWidth: 130, borderRadius: 2, ...getStatusStyle(item.status, isDarkMode) }}>
                                     <MenuItem value="new">Нове</MenuItem>
                                     <MenuItem value="in_progress">В роботі</MenuItem>
                                     <MenuItem value="resolved">Виконано</MenuItem>
                                     <MenuItem value="rejected">Відхилено</MenuItem>
-                                    <Divider sx={{ borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }} />
-                                    <MenuItem value="archived" sx={{ color: '#64748b' }}>📦 В архів</MenuItem>
-                                    <MenuItem value="spam" sx={{ color: '#f87171' }}>🚫 У спам</MenuItem>
+                                    <Divider />
+                                    <MenuItem value="archived">📦 В архів</MenuItem>
+                                    <MenuItem value="spam">🚫 У спам</MenuItem>
                                   </Select>
                                 </TableCell>
                                 <TableCell align="center">
-                                  <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
-                                    {photo_path && (
-                                      <IconButton size="small" sx={{ color: '#38bdf8', '&:hover': { bgcolor: 'rgba(56, 189, 248, 0.1)' } }} component="a" href={`${API_URL}/${photo_path}`} target="_blank" rel="noreferrer"><VisibilityIcon /></IconButton>
-                                    )}
-                                    <IconButton size="small" sx={{ color: '#f87171', '&:hover': { bgcolor: 'rgba(248, 113, 113, 0.1)' } }} onClick={() => handleDelete(id)}><DeleteIcon /></IconButton>
+                                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                                    {item.photo_path && <IconButton size="small" color="primary" href={`${API_URL}/${item.photo_path}`} target="_blank"><VisibilityIcon /></IconButton>}
+                                    <IconButton size="small" color="error" onClick={() => handleDelete(item.id)}><DeleteIcon /></IconButton>
                                   </Box>
                                 </TableCell>
                               </TableRow>
@@ -484,9 +546,7 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
           )}
         </Box>
       </Box>
-      <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
-        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.type} variant="filled" sx={{ borderRadius: 3 }}>{snackbar.message}</Alert>
-      </Snackbar>
+      <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({ ...snackbar, open: false })}><Alert severity={snackbar.type} variant="filled">{snackbar.message}</Alert></Snackbar>
     </Box>
   );
 }

@@ -10,11 +10,11 @@ import { Drawer, Button, Typography, Box, Divider, IconButton } from '@mui/mater
 import SettingsIcon from '@mui/icons-material/Settings';
 import LoginIcon from '@mui/icons-material/Login';
 import LogoutIcon from '@mui/icons-material/Logout';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import MenuIcon from '@mui/icons-material/Menu'; 
 import CloseIcon from '@mui/icons-material/Close'; 
+import MoveToInboxIcon from '@mui/icons-material/MoveToInbox';
 
 function App() {
   const [messages, setMessages] = useState([]);
@@ -36,9 +36,13 @@ function App() {
   const [showComplaintForm, setShowComplaintForm] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
+  // Стан для відображення додаткових полів
+  const [showPersonalFields, setShowPersonalFields] = useState(false);
+
+  // is_anonymous за замовчуванням 1 (анонімно), поле photo видалено
   const [complaintData, setComplaintData] = useState({
     full_name: "", student_group: "", appeal_type: "complaint", category: "Навчальний процес", 
-    message: "", is_anonymous: 0, contact_type: "none", contact_value: "", photo: null
+    message: "", is_anonymous: 1, contact_type: "none", contact_value: ""
   });
 
   const chatEndRef = useRef(null);
@@ -47,13 +51,6 @@ function App() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); 
   }, [messages, isTyping]);
   
-  // useEffect(() => {
-  //   fetch('http://localhost/backend/track_visit.php')
-  //     .then(res => res.json())
-  //     .then(data => console.log("Відвідувача зараховано успішно:", data))
-  //     .catch(err => console.error('Помилка лічильника:', err));
-  // }, []);
-
   const toggleTheme = () => {
     setIsDarkMode((prev) => {
       const newTheme = !prev;
@@ -79,24 +76,54 @@ function App() {
     setIsMobileMenuOpen(false);
   };
 
-  // === ОПТИМІЗАЦІЯ: Єдиний обробник для всіх текстових полів форми ===
   const handleChange = (field, value) => {
     setComplaintData(prev => {
       const newData = { ...prev, [field]: value };
-      // Логіка: якщо ввели ПІБ, автоматично знімаємо галочку "Анонімно"
-      if (field === 'full_name') {
-        newData.is_anonymous = value.length > 0 ? 0 : 1;
-      }
-      // Логіка: якщо змінили тип контакту на "Без контакту", очищаємо значення
-      if (field === 'contact_type' && value === 'none') {
-        newData.contact_value = "";
+      
+      // Автоматичне керування полем contact_value при зміні типу контакту
+      if (field === 'contact_type') {
+        if (value === 'none') newData.contact_value = "";
+        else if (value === 'phone') newData.contact_value = "+380";
+        else if (value === 'email') newData.contact_value = "";
       }
       return newData;
     });
   };
 
+  // Обробник чекбоксу особистих даних
+  const handleTogglePersonalData = (checked) => {
+    setShowPersonalFields(checked);
+    if (checked) {
+      handleChange('is_anonymous', 0);
+    } else {
+      // Якщо зняли галочку - очищаємо поля і повертаємо анонімність
+      setComplaintData(prev => ({
+        ...prev,
+        is_anonymous: 1,
+        full_name: "",
+        student_group: "",
+        contact_type: "none",
+        contact_value: ""
+      }));
+    }
+  };
+
   const handleComplaintSubmit = async () => {
     if (!complaintData.message.trim()) return alert("Будь ласка, опишіть проблему.");
+    
+    // Перевірка формату email (якщо вибрано email)
+    if (complaintData.contact_type === 'email' && complaintData.contact_value) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(complaintData.contact_value)) {
+        return alert("Будь ласка, введіть коректну email адресу.");
+      }
+    }
+
+    // Перевірка довжини телефону (якщо вибрано телефон)
+    if (complaintData.contact_type === 'phone' && complaintData.contact_value.length < 19) {
+      return alert("Будь ласка, введіть повний номер телефону.");
+    }
+
     setIsSending(true);
     const formData = new FormData();
     Object.keys(complaintData).forEach(key => formData.append(key, complaintData[key]));
@@ -108,16 +135,14 @@ function App() {
       if (result.success) {
         alert(`Звернення ${result.tracking_code} відправлено!`);
         setShowComplaintForm(false);
-        setComplaintData({ full_name: "", student_group: "", appeal_type: "complaint", category: "Навчальний процес", message: "", is_anonymous: 0, contact_type: "none", contact_value: "", photo: null }); 
+        setShowPersonalFields(false);
+        setComplaintData({ full_name: "", student_group: "", appeal_type: "complaint", category: "Навчальний процес", message: "", is_anonymous: 1, contact_type: "none", contact_value: "" }); 
       } else {
-        // ДОДАНО ОБРОБКУ ПОМИЛОК ВІД PHP:
         alert(`Помилка бази даних: ${result.message}\nДеталі: ${result.error || ''}`);
-        console.error("Детальна відповідь сервера:", result);
       }
       
     } catch (error) { 
       alert('Помилка з\'єднання з сервером.'); 
-      console.error("Помилка fetch:", error);
     } finally { 
       setIsSending(false); 
     }
@@ -189,6 +214,7 @@ function App() {
         <Button variant="contained" fullWidth className="btn-login-submit" onClick={handleLogin}>УВІЙТИ</Button>
       </Drawer>
 
+      {/* === СКРИНЬКА ДОВІРИ (МОДАЛЬНЕ ВІКНО) === */}
       {showComplaintForm && (
         <div className="bot-modal-overlay">
           <div className="bot-modal-content" style={{ position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
@@ -197,12 +223,15 @@ function App() {
               <CloseIcon />
             </IconButton>
 
-            <Typography variant="h5" sx={{ mb: 3, fontWeight: 800, textAlign: 'center' }} className="modal-header-title">Нове звернення</Typography>
+            <Box sx={{ textAlign: 'center', mb: 2 }}>
+              <MoveToInboxIcon sx={{ fontSize: 40, color: '#38bdf8', mb: 1 }} />
+              <Typography variant="h5" sx={{ fontWeight: 800 }} className="modal-header-title">Скринька довіри</Typography>
+              <Typography variant="body2" sx={{ color: isDarkMode ? '#9ca3af' : '#64748b', mt: 0.5 }}>
+                За замовчуванням звернення є повністю анонімним.
+              </Typography>
+            </Box>
+
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pb: 2 }}>
-              
-              <input type="text" placeholder="ПІБ (за бажанням)" className="bot-glass-input" value={complaintData.full_name} onChange={e => handleChange('full_name', e.target.value)} />
-              <input type="text" placeholder="Група (напр. КН-21)" className="bot-glass-input" value={complaintData.student_group} onChange={e => handleChange('student_group', e.target.value)} />
-              <Divider className="modal-divider" sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
               
               <div className="bot-modal-field">
                 <label>Тип звернення:</label>
@@ -222,38 +251,73 @@ function App() {
                   <option value="Інше">Інше</option>
                 </select>
               </div>
-              
-              <div className="bot-modal-field">
-                <label>Зв'язок:</label>
-                <select className="bot-glass-input" value={complaintData.contact_type} onChange={e => handleChange('contact_type', e.target.value)}>
-                  <option value="none">Без контакту</option>
-                  <option value="phone">📞 Телефон</option>
-                  <option value="email">📧 Email</option>
-                </select>
-              </div>
-              
-              {complaintData.contact_type !== "none" && (
-                <input type="text" placeholder="Контактні дані..." className="bot-glass-input" value={complaintData.contact_value} onChange={e => handleChange('contact_value', e.target.value)} />
-              )}
-              
+
               <textarea placeholder="Опишіть ситуацію..." className="bot-glass-input" style={{ minHeight: '120px' }} value={complaintData.message} onChange={e => handleChange('message', e.target.value)} />
               
-              <div className="bot-modal-field">
-                <label>Додати файл:</label>
-                <Button component="label" variant="outlined" startIcon={<CloudUploadIcon />} className="upload-btn" sx={{ width: '100%', borderRadius: '12px', py: 1.5, color: '#9ca3af', borderColor: 'rgba(255,255,255,0.1)' }}>
-                  {complaintData.photo ? complaintData.photo.name : "Завантажити фото"}
-                  <input type="file" accept="image/*" hidden onChange={(e) => handleChange('photo', e.target.files[0])} />
-                </Button>
-              </div>
-              
-              <label className="bot-checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
-                <input type="checkbox" checked={Number(complaintData.is_anonymous) === 1} onChange={e => handleChange('is_anonymous', e.target.checked ? 1 : 0)} /> 
-                <span style={{ fontSize: '14px', color: '#9ca3af' }}>Надіслати анонімно</span>
+              <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)', my: 1 }} />
+
+              {/* Чекбокс для відкриття додаткових полів */}
+              <label className="bot-checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '5px 0' }}>
+                <input type="checkbox" checked={showPersonalFields} onChange={e => handleTogglePersonalData(e.target.checked)} /> 
+                <span style={{ fontSize: '15px', color: showPersonalFields ? '#38bdf8' : (isDarkMode ? '#e2e8f0' : '#1e293b'), fontWeight: showPersonalFields ? 600 : 400 }}>
+                  Вказати мої дані для зворотного зв'язку
+                </span>
               </label>
-              
-              <div className="bot-modal-buttons" style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                <button onClick={handleComplaintSubmit} className="bot-btn-success" style={{ flex: 1 }} disabled={isSending}>{isSending ? "Надсилаємо..." : "НАДІСЛАТИ"}</button>
-                <button onClick={() => setShowComplaintForm(false)} className="bot-btn-danger" style={{ flex: 1 }}>СКАСУВАТИ</button>
+
+              {/* Поля, що випадають тільки якщо стоїть галочка */}
+              {showPersonalFields && (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2, bgcolor: isDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderRadius: '12px', border: `1px solid ${isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}` }}>
+                  <input type="text" placeholder="ПІБ" className="bot-glass-input" value={complaintData.full_name} onChange={e => handleChange('full_name', e.target.value)} />
+                  <input type="text" placeholder="Група (напр. КН-21)" className="bot-glass-input" value={complaintData.student_group} onChange={e => handleChange('student_group', e.target.value)} />
+                  
+                  <div className="bot-modal-field">
+                    <label>Зв'язок:</label>
+                    <select className="bot-glass-input" value={complaintData.contact_type} onChange={e => handleChange('contact_type', e.target.value)}>
+                      <option value="none">Обрати спосіб зв'язку...</option>
+                      <option value="phone">📞 Телефон</option>
+                      <option value="email">📧 Email</option>
+                    </select>
+                  </div>
+                  
+                  {/* ШАБЛОН ДЛЯ ТЕЛЕФОНУ */}
+                  {complaintData.contact_type === "phone" && (
+                    <input 
+                      type="tel" 
+                      placeholder="+380 (XX) XXX-XX-XX" 
+                      maxLength="19"
+                      className="bot-glass-input" 
+                      value={complaintData.contact_value} 
+                      onChange={e => {
+                        // Маска для автоматичного формування номера
+                        const numbers = e.target.value.replace(/\D/g, ''); // Залишаємо лише цифри
+                        let formatted = '';
+                        if (numbers.length > 0) formatted += '+' + numbers.substring(0, 3);
+                        if (numbers.length > 3) formatted += ' (' + numbers.substring(3, 5);
+                        if (numbers.length > 5) formatted += ') ' + numbers.substring(5, 8);
+                        if (numbers.length > 8) formatted += '-' + numbers.substring(8, 10);
+                        if (numbers.length > 10) formatted += '-' + numbers.substring(10, 12);
+                        handleChange('contact_value', formatted);
+                      }} 
+                    />
+                  )}
+
+                  {/* ШАБЛОН ДЛЯ EMAIL */}
+                  {complaintData.contact_type === "email" && (
+                    <input 
+                      type="email" 
+                      placeholder="student@example.com" 
+                      className="bot-glass-input" 
+                      value={complaintData.contact_value} 
+                      onChange={e => handleChange('contact_value', e.target.value)} 
+                    />
+                  )}
+                </Box>
+              )}
+
+              <div className="bot-modal-buttons" style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                <button onClick={handleComplaintSubmit} className="bot-btn-success" style={{ flex: 1 }} disabled={isSending}>
+                  {isSending ? "Надсилаємо..." : "НАДІСЛАТИ"}
+                </button>
               </div>
             </Box>
           </div>
