@@ -29,6 +29,7 @@ import TableViewIcon from '@mui/icons-material/TableView';
 
 // === НОВА БІБЛІОТЕКА ГРАФІКІВ ===
 import Chart from "react-apexcharts";
+import BotSettings from './BotSettings'; 
 
 // === ЕКСПОРТ ===
 import { Document, Packer, Paragraph, TextRun, Table as WordTable, TableRow as WordRow, TableCell as WordCell, WidthType, AlignmentType, VerticalAlign, BorderStyle } from "docx";
@@ -104,6 +105,10 @@ function Sidebar({ view, setView, onLogout, onReturnToBot, isMobileMenuOpen }) {
         <Button startIcon={<ListIcon />} fullWidth className={`nav-btn ${view === "table" ? "active" : ""}`} onClick={() => setView("table")}>Активні звернення</Button>
         <Button startIcon={<ArchiveIcon />} fullWidth className={`nav-btn ${view === "archive" ? "active" : ""}`} onClick={() => setView("archive")}>Архів звернень</Button>
         <Button startIcon={<ReportIcon />} fullWidth className={`nav-btn ${view === "spam" ? "active" : ""}`} onClick={() => setView("spam")}>Спам</Button>
+        
+        <Divider sx={{ my: 2, borderColor: 'rgba(255,255,255,0.1)' }} />
+        
+        <Button startIcon={<SettingsIcon />} fullWidth className={`nav-btn ${view === "bot_settings" ? "active" : ""}`} onClick={() => setView("bot_settings")}>Налаштування бота</Button>
       </Box>
       <Box sx={{ mt: "auto", p: 2 }}>
         <Button startIcon={<ChatIcon />} fullWidth className="nav-btn" onClick={onReturnToBot} sx={{ mb: 1, color: '#38bdf8 !important' }}>До чат-бота</Button>
@@ -154,7 +159,39 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
 
   useEffect(() => { fetchData(); }, []);
 
-  // === ЕКСПОРТ (Word / Excel) ===
+  // Фільтрація даних для відображення в таблиці та експорту
+  const displayedComplaints = useMemo(() => {
+    let result = [...complaints];
+    
+    // ФІЛЬТРАЦІЯ СПАМУ ДЛЯ РІЗНИХ ВКЛАДОК
+    if (view === "table") {
+        result = result.filter(c => c.status !== "archived" && c.status !== "spam" && Number(c.is_spam) !== 1);
+    } else if (view === "archive") {
+        result = result.filter(c => c.status === "archived" && Number(c.is_spam) !== 1);
+    } else if (view === "spam") {
+        // У вкладку Спам потрапляє все, що ти помітив вручну (status === 'spam') АБО що помітив ШІ (is_spam === 1)
+        result = result.filter(c => c.status === "spam" || Number(c.is_spam) === 1);
+    }
+
+    if (tableFilter !== "all" && view === "table") {
+      if (tableFilter === "new") result = result.filter(c => c.status === 'new' || !c.status);
+      else if (tableFilter === "anonymous") result = result.filter(c => Number(c.is_anonymous) === 1);
+      else if (tableFilter === "tech") result = result.filter(c => c.category === 'Технічна проблема');
+    }
+
+    if (search.trim() !== "") {
+      const q = search.toLowerCase();
+      result = result.filter(c => (c.message?.toLowerCase().includes(q)) || (c.tracking_code?.toLowerCase().includes(q)) || (c.full_name?.toLowerCase().includes(q)));
+    }
+    result.sort((a, b) => {
+      const timeDiff = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      return sortOrder === "desc" ? timeDiff : -timeDiff;
+    });
+    return result;
+  }, [complaints, view, tableFilter, search, sortOrder]);
+
+
+  // === ВІДНОВЛЕНИЙ ЕКСПОРТ (Word / Excel) ===
   const exportToWord = () => {
     const doc = new Document({
       sections: [{
@@ -219,35 +256,80 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
   };
 
   const exportToExcel = () => {
-    const dataForExcel = complaints.map(item => ({
-      "Відправник": Number(item.is_anonymous) === 1 || !item.full_name ? "Анонімно" : item.full_name,
-      "Група": item.student_group || "-",
-      "Контактні дані": item.contact_type !== 'none' && item.contact_value ? `${item.contact_type === 'phone' ? 'Тел: ' : 'Email: '}${item.contact_value}` : "Не вказано",
-      "Тип": APPEAL_LABELS[item.appeal_type]?.text || "Скарга",
-      "Категорія": item.category || "-",
-      "Повідомлення": item.message || "-",
-      "Статус": STATUS_LABELS[item.status] || "Нове"
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(dataForExcel);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Звернення");
-
-    worksheet['!cols'] = [
-      { wch: 20 }, { wch: 12 }, { wch: 25 }, { wch: 15 }, { wch: 20 }, { wch: 50 }, { wch: 15 }
+    // 1. Формуємо масив даних (по рядках), де перші рядки — це наша "шапка" документа
+    const excelData = [
+      ["ЗВЯГЕЛЬСЬКИЙ ПОЛІТЕХНІЧНИЙ ФАХОВИЙ КОЛЕДЖ (ZPFK)"], // Рядок 1
+      ["ЗВІТ ПО ЗВЕРНЕННЯХ СТУДЕНТІВ"],                      // Рядок 2
+      [`Дата формування: ${new Date().toLocaleDateString()}`], // Рядок 3
+      [],                                                    // Рядок 4 (пустий для відступу)
+      // Рядок 5 (Заголовки колонок)
+      ["Відправник", "Група", "Контактні дані", "Тип", "Категорія", "Повідомлення", "Статус"]
     ];
 
+    // 2. Додаємо самі дані зі зверненнями
+    displayedComplaints.forEach(item => {
+      excelData.push([
+        Number(item.is_anonymous) === 1 || !item.full_name ? "Анонімно" : item.full_name,
+        item.student_group || "-",
+        item.contact_type !== 'none' && item.contact_value ? `${item.contact_type === 'phone' ? 'Тел: ' : 'Email: '}${item.contact_value}` : "Не вказано",
+        APPEAL_LABELS[item.appeal_type]?.text || "Скарга",
+        item.category || "-",
+        item.message || "-",
+        STATUS_LABELS[item.status] || "Нове"
+      ]);
+    });
+
+    // 3. Створюємо аркуш Excel з нашого масиву
+    const worksheet = XLSX.utils.aoa_to_sheet(excelData);
+
+    // 4. МАГІЯ: Об'єднуємо клітинки для перших трьох рядків "шапки" (від A до G)
+    // s - start (початок), e - end (кінець), r - row (рядок), c - col (колонка)
+    worksheet['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }, // З'єднуємо A1:G1 для назви коледжу
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } }, // З'єднуємо A2:G2 для назви звіту
+      { s: { r: 2, c: 0 }, e: { r: 2, c: 6 } }  // З'єднуємо A3:G3 для дати
+    ];
+
+    // 5. Налаштовуємо ширину колонок, щоб повідомлення влазило
+    worksheet['!cols'] = [
+      { wch: 20 }, // Відправник
+      { wch: 10 }, // Група
+      { wch: 22 }, // Контакти
+      { wch: 15 }, // Тип
+      { wch: 20 }, // Категорія
+      { wch: 60 }, // Повідомлення (зробили дуже широким)
+      { wch: 15 }  // Статус
+    ];
+
+    // 6. Генеруємо та зберігаємо файл
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Звіти ZPFK");
+    
     XLSX.writeFile(workbook, `Report_ZPFK_${new Date().toLocaleDateString()}.xlsx`);
     setSnackbar({ open: true, message: "Звіт Excel згенеровано!", type: "success" });
   };
 
-  const handleDelete = async (id) => {
+
+ const handleDelete = async (id) => {
     if (!window.confirm("Назавжди видалити звернення?")) return;
+    
+    // Дістаємо токен зі сховища
+    const token = sessionStorage.getItem("jwt_token");
+
     try {
-      await fetch(`${API_URL}/delete-complaint.php`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+      await fetch(`${API_URL}/delete-complaint.php`, { 
+        method: "POST", 
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}` // <--- ОСЬ МИ ПЕРЕДАЄМО ПАСПОРТ!
+        }, 
+        body: JSON.stringify({ id }) 
+      });
       setComplaints(prev => prev.filter(c => c.id !== id));
       setSnackbar({ open: true, message: "Видалено успішно", type: "success" });
-    } catch { setSnackbar({ open: true, message: "Помилка видалення", type: "error" }); }
+    } catch { 
+      setSnackbar({ open: true, message: "Помилка видалення", type: "error" }); 
+    }
   };
 
   const handleStatusChange = async (id, newStatus) => {
@@ -258,9 +340,10 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
     } catch { setSnackbar({ open: true, message: "Помилка оновлення", type: "error" }); }
   };
 
-  // === ОБРОБКА ДАНИХ ДЛЯ ГРАФІКІВ ===
+  // === ОБРОБКА ДАНИХ (ВРАХОВУЄМО is_spam === 1) ===
   const stats = useMemo(() => {
-    const active = complaints.filter(c => c.status !== "archived" && c.status !== "spam");
+    // Ігноруємо статус спаму АБО якщо ШІ позначив його як спам (is_spam == 1)
+    const active = complaints.filter(c => c.status !== "archived" && c.status !== "spam" && Number(c.is_spam) !== 1);
     return {
       total: active.length,
       newC: active.filter(c => c.status === "new" || !c.status).length,
@@ -270,7 +353,7 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
   }, [complaints]);
 
   const appealTypeData = useMemo(() => {
-    const active = complaints.filter(c => c.status !== "archived" && c.status !== "spam");
+    const active = complaints.filter(c => c.status !== "archived" && c.status !== "spam" && Number(c.is_spam) !== 1);
     const map = { complaint: 0, proposal: 0, inquiry: 0 };
     active.forEach(c => { if (map.hasOwnProperty(c.appeal_type)) map[c.appeal_type]++; });
     return {
@@ -280,31 +363,42 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
   }, [complaints]);
 
   const categoryData = useMemo(() => {
-    const active = complaints.filter(c => c.status !== "archived" && c.status !== "spam");
+    const active = complaints.filter(c => c.status !== "archived" && c.status !== "spam" && Number(c.is_spam) !== 1);
     const map = {};
     active.forEach(c => { map[c.category] = (map[c.category] || 0) + 1; });
     const keys = Object.keys(map);
     return { series: keys.map(k => map[k]), labels: keys };
   }, [complaints]);
 
-  const sentimentData = useMemo(() => {
-    const active = complaints.filter(c => c.status !== "archived" && c.status !== "spam");
+const sentimentData = useMemo(() => {
+    // 1. Фільтруємо архів і спам
+    const active = complaints.filter(c => c.status !== "archived" && c.status !== "spam" && Number(c.is_spam) !== 1);
+    
     let pos = 0, neu = 0, neg = 0;
+    
     active.forEach(c => {
-      if (c.tonality === 'positive') pos++;
-      else if (c.tonality === 'negative') neg++;
+      // 2. САМЕ ТУТ ТРЕБА c.sentiment ЗАМІСТЬ c.tonality!
+      if (c.sentiment === 'positive') pos++;
+      else if (c.sentiment === 'negative') neg++;
       else neu++; 
     });
+
+    // 3. Твій правильний код формування масивів
     const rawData = [
       { label: "Позитивні", value: pos, color: '#4ade80' },
       { label: "Нейтральні", value: neu, color: '#facc15' },
       { label: "Негативні", value: neg, color: '#f87171' }
     ].filter(item => item.value > 0);
-    return { series: rawData.map(item => item.value), labels: rawData.map(item => item.label), colors: rawData.map(item => item.color) };
+
+    return { 
+      series: rawData.map(item => item.value), 
+      labels: rawData.map(item => item.label), 
+      colors: rawData.map(item => item.color) 
+    };
   }, [complaints]);
 
   const barData = useMemo(() => {
-    const active = complaints.filter(c => c.status !== "archived" && c.status !== "spam");
+    const active = complaints.filter(c => c.status !== "archived" && c.status !== "spam" && Number(c.is_spam) !== 1);
     const data = [
       { name: "Нові", value: active.filter(c => c.status === "new" || !c.status).length },
       { name: "В роботі", value: active.filter(c => c.status === "in_progress").length },
@@ -313,30 +407,6 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
     ];
     return { series: [{ name: 'Кількість', data: data.map(d => d.value) }], categories: data.map(d => d.name) };
   }, [complaints]);
-
-  const displayedComplaints = useMemo(() => {
-    let result = [...complaints];
-    if (view === "table") result = result.filter(c => c.status !== "archived" && c.status !== "spam");
-    else if (view === "archive") result = result.filter(c => c.status === "archived");
-    else if (view === "spam") result = result.filter(c => c.status === "spam");
-
-    if (tableFilter !== "all" && view === "table") {
-      if (tableFilter === "new") result = result.filter(c => c.status === 'new' || !c.status);
-      else if (tableFilter === "anonymous") result = result.filter(c => Number(c.is_anonymous) === 1);
-      else if (tableFilter === "tech") result = result.filter(c => c.category === 'Технічна проблема');
-    }
-
-    if (search.trim() !== "") {
-      const q = search.toLowerCase();
-      result = result.filter(c => (c.message?.toLowerCase().includes(q)) || (c.tracking_code?.toLowerCase().includes(q)) || (c.full_name?.toLowerCase().includes(q)));
-    }
-    result.sort((a, b) => {
-      const timeDiff = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      return sortOrder === "desc" ? timeDiff : -timeDiff;
-    });
-    return result;
-  }, [complaints, view, tableFilter, search, sortOrder]);
-
 
   // === КОНФІГУРАЦІЯ APEXCHARTS ===
   const chartThemeColor = isDarkMode ? '#e2e8f0' : '#0f172a';
@@ -349,7 +419,19 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
     dataLabels: { enabled: false },
     stroke: { show: false },
     legend: { position: 'bottom', fontSize: '12px', labels: { colors: chartThemeColor } },
-    plotOptions: { pie: { donut: { size: '70%', labels: { show: true, total: { show: true, label: 'Всього', color: chartThemeColor, formatter: (w) => w.globals.seriesTotals.reduce((a, b) => a + b, 0) } } } } }
+    plotOptions: { 
+      pie: { 
+        donut: { 
+          size: '70%', 
+          labels: { 
+            show: true, 
+            name: { show: false }, 
+            value: { show: true, fontSize: '22px', fontWeight: 700, color: chartThemeColor, offsetY: 8, formatter: (val) => val },
+            total: { show: true, label: 'Всього', color: chartThemeColor, fontSize: '14px', formatter: (w) => w.globals.seriesTotals.reduce((a, b) => a + b, 0) } 
+          } 
+        } 
+      } 
+    }
   };
 
   const apexCategoryOptions = {
@@ -405,7 +487,10 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
           <Toolbar>
             <IconButton edge="start" onClick={() => setIsMobileMenuOpen(true)} sx={{ mr: 2, display: { md: 'none' }, color: isDarkMode ? '#9ca3af' : '#64748b' }}><MenuIcon /></IconButton>
             <Typography variant="h6" sx={{ color: isDarkMode ? "#f3f4f6" : "#0f172a", fontWeight: 700, flexGrow: 1 }}>
-              {view === "dashboard" ? "Аналітика системи" : view === "archive" ? "Архів звернень" : view === "spam" ? "Спам" : "Активні звернення"}
+              {view === "dashboard" ? "Аналітика системи" : 
+               view === "archive" ? "Архів звернень" : 
+               view === "spam" ? "Спам" : 
+               view === "bot_settings" ? "Налаштування бота" : "Активні звернення"}
             </Typography>
             <IconButton onClick={toggleTheme} sx={{ color: isDarkMode ? '#fbbf24' : '#64748b' }}>{isDarkMode ? <LightModeIcon /> : <DarkModeIcon />}</IconButton>
           </Toolbar>
@@ -457,6 +542,10 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
                     </Grid>
                   </Grid>
                 </>
+              )}
+
+              {view === "bot_settings" && (
+                <BotSettings isDarkMode={isDarkMode} setSnackbar={setSnackbar} />
               )}
 
               {(view === "table" || view === "archive" || view === "spam") && (
@@ -514,7 +603,14 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
                                 </TableCell>
                                 <TableCell sx={{ maxWidth: 350, color: isDarkMode ? '#e2e8f0' : '#1e293b' }}>
                                   <Box>{item.message}</Box>
-                                  <TonalityBadge tonality={item.tonality} isDark={isDarkMode} />
+                                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                      <TonalityBadge tonality={item.tonality} isDark={isDarkMode} />
+                                      {Number(item.is_spam) === 1 && (
+                                          <span style={{ backgroundColor: 'rgba(248, 113, 113, 0.1)', color: '#f87171', padding: '4px 8px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', marginTop: '6px' }}>
+                                              🤖 AI Спам
+                                          </span>
+                                      )}
+                                  </Box>
                                 </TableCell>
                                 <TableCell>
                                   <Select value={item.status || "new"} onChange={(e) => handleStatusChange(item.id, e.target.value)} size="small" MenuProps={dropdownMenuProps} sx={{ minWidth: 130, borderRadius: 2, ...getStatusStyle(item.status, isDarkMode) }}>

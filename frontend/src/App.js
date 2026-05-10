@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
 import "./App.css"; 
-import steps from "./data/steps";
+// Імпортуємо як staticSteps, щоб не було конфлікту назв
+import staticSteps from "./data/steps";
 import ChatBox from "./components/ChatBox/ChatBox";
 import ButtonGroup from "./components/ButtonGroup/ButtonGroup";
 import AdminDashboard from "./AdminDashboard";
-import { Drawer, Button, Typography, Box, Divider, IconButton } from '@mui/material';
+import { Drawer, Button, Typography, Box, Divider, IconButton, CircularProgress } from '@mui/material';
 
 // === ІКОНКИ ===
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -16,11 +17,16 @@ import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close'; 
 import MoveToInboxIcon from '@mui/icons-material/MoveToInbox';
 
+const API_URL = "http://localhost/backend";
+
 function App() {
   const [messages, setMessages] = useState([]);
+  // Стан для кроків бота (спочатку завантажуємо статичні)
+  const [botSteps, setBotSteps] = useState(staticSteps);
   const [currentStep, setCurrentStep] = useState("start");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); 
+  const [loadingSteps, setLoadingSteps] = useState(true);
   
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem("appTheme");
@@ -28,6 +34,7 @@ function App() {
   });
 
   const [isAdmin, setIsAdmin] = useState(() => sessionStorage.getItem("isAdmin") === "true"); 
+  const [userRole, setUserRole] = useState(() => sessionStorage.getItem("userRole") || null);
   const [showAdminDashboard, setShowAdminDashboard] = useState(false); 
 
   const [loginUsername, setLoginUsername] = useState("");
@@ -36,16 +43,42 @@ function App() {
   const [showComplaintForm, setShowComplaintForm] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
-  // Стан для відображення додаткових полів
   const [showPersonalFields, setShowPersonalFields] = useState(false);
 
-  // is_anonymous за замовчуванням 1 (анонімно), поле photo видалено
   const [complaintData, setComplaintData] = useState({
     full_name: "", student_group: "", appeal_type: "complaint", category: "Навчальний процес", 
     message: "", is_anonymous: 1, contact_type: "none", contact_value: ""
   });
 
   const chatEndRef = useRef(null);
+
+  // === ЛОГІКА ЗАВАНТАЖЕННЯ ТЕКСТІВ З БД ===
+  useEffect(() => {
+    const fetchDynamicSteps = async () => {
+      try {
+        const res = await fetch(`${API_URL}/get-steps.php`);
+        const dbTexts = await res.json();
+
+        if (Array.isArray(dbTexts)) {
+          setBotSteps(prevSteps => {
+            const newSteps = { ...prevSteps };
+            dbTexts.forEach(item => {
+              if (newSteps[item.id]) {
+                newSteps[item.id] = { ...newSteps[item.id], message: item.message };
+              }
+            });
+            return newSteps;
+          });
+        }
+      } catch (err) {
+        console.error("Не вдалося завантажити динамічні тексти:", err);
+      } finally {
+        setLoadingSteps(false);
+      }
+    };
+
+    fetchDynamicSteps();
+  }, []);
 
   useEffect(() => { 
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); 
@@ -59,19 +92,45 @@ function App() {
     });
   };
 
-  const handleLogin = () => {
-    if (loginUsername === "admin" && loginPassword === "admin") {
-      setIsAdmin(true);
-      sessionStorage.setItem("isAdmin", "true"); 
-      setShowAdminDashboard(true);
-      setLoginUsername(""); setLoginPassword(""); setIsSidebarOpen(false); 
-      setIsMobileMenuOpen(false);
-    } else { alert("Невірний логін або пароль"); }
+  const handleLogin = async () => {
+    if (!loginUsername || !loginPassword) return alert("Введіть логін та пароль");
+
+    try {
+      const response = await fetch(`${API_URL}/login.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: loginUsername, password: loginPassword })
+      });
+      
+      const result = await response.json();
+
+      if (result.success) {
+        setIsAdmin(true);
+        
+        // ЗБЕРІГАЄМО JWT ТОКЕН
+        sessionStorage.setItem("jwt_token", result.token); 
+        sessionStorage.setItem("isAdmin", "true"); 
+        sessionStorage.setItem("userRole", result.role);
+        
+        setShowAdminDashboard(true);
+        setLoginUsername(""); 
+        setLoginPassword("");
+        setIsSidebarOpen(false); 
+        setIsMobileMenuOpen(false);
+      } else {
+        alert(result.error);
+      }
+    } catch (error) {
+      alert("Помилка з'єднання з сервером.");
+    }
   };
 
   const handleLogout = () => {
     setIsAdmin(false);
+    // ОЧИЩАЄМО ТОКЕН ПРИ ВИХОДІ
+    sessionStorage.removeItem("jwt_token");
     sessionStorage.removeItem("isAdmin"); 
+    sessionStorage.removeItem("userRole"); 
     setShowAdminDashboard(false);
     setIsMobileMenuOpen(false);
   };
@@ -79,90 +138,64 @@ function App() {
   const handleChange = (field, value) => {
     setComplaintData(prev => {
       const newData = { ...prev, [field]: value };
-      
-      // Автоматичне керування полем contact_value при зміні типу контакту
       if (field === 'contact_type') {
         if (value === 'none') newData.contact_value = "";
         else if (value === 'phone') newData.contact_value = "+380";
-        else if (value === 'email') newData.contact_value = "";
       }
       return newData;
     });
   };
 
-  // Обробник чекбоксу особистих даних
   const handleTogglePersonalData = (checked) => {
     setShowPersonalFields(checked);
     if (checked) {
       handleChange('is_anonymous', 0);
     } else {
-      // Якщо зняли галочку - очищаємо поля і повертаємо анонімність
       setComplaintData(prev => ({
-        ...prev,
-        is_anonymous: 1,
-        full_name: "",
-        student_group: "",
-        contact_type: "none",
-        contact_value: ""
+        ...prev, is_anonymous: 1, full_name: "", student_group: "", contact_type: "none", contact_value: ""
       }));
     }
   };
 
   const handleComplaintSubmit = async () => {
     if (!complaintData.message.trim()) return alert("Будь ласка, опишіть проблему.");
-    
-    // Перевірка формату email (якщо вибрано email)
-    if (complaintData.contact_type === 'email' && complaintData.contact_value) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(complaintData.contact_value)) {
-        return alert("Будь ласка, введіть коректну email адресу.");
-      }
-    }
-
-    // Перевірка довжини телефону (якщо вибрано телефон)
-    if (complaintData.contact_type === 'phone' && complaintData.contact_value.length < 19) {
-      return alert("Будь ласка, введіть повний номер телефону.");
-    }
-
     setIsSending(true);
     const formData = new FormData();
     Object.keys(complaintData).forEach(key => formData.append(key, complaintData[key]));
     
     try {
-      const response = await fetch('http://localhost/backend/create-complaint.php', { method: 'POST', body: formData });
+      const response = await fetch(`${API_URL}/create-complaint.php`, { method: 'POST', body: formData });
       const result = await response.json();
-      
       if (result.success) {
         alert(`Звернення ${result.tracking_code} відправлено!`);
         setShowComplaintForm(false);
         setShowPersonalFields(false);
         setComplaintData({ full_name: "", student_group: "", appeal_type: "complaint", category: "Навчальний процес", message: "", is_anonymous: 1, contact_type: "none", contact_value: "" }); 
-      } else {
-        alert(`Помилка бази даних: ${result.message}\nДеталі: ${result.error || ''}`);
       }
-      
-    } catch (error) { 
-      alert('Помилка з\'єднання з сервером.'); 
-    } finally { 
-      setIsSending(false); 
-    }
+    } catch (error) { alert('Помилка з\'єднання.'); } 
+    finally { setIsSending(false); }
   };
 
   const handleClick = (label, next) => {
     if (next === "open_complaint_form") { setShowComplaintForm(true); return; }
-    if (!steps[next]) return;
+    if (!botSteps[next]) return;
+    
     setMessages((prev) => [...prev, { sender: "user", text: label }]);
-    setCurrentStep(""); setIsTyping(true);
+    setCurrentStep(""); 
+    setIsTyping(true);
+    
     setTimeout(() => {
       setIsTyping(false);
-      setMessages((prev) => [...prev, { sender: "bot", text: steps[next].message }]);
+      setMessages((prev) => [...prev, { sender: "bot", text: botSteps[next].message }]);
       setCurrentStep(next);
     }, 600);
   };
 
   if (isAdmin && showAdminDashboard) {
-    return <AdminDashboard onLogout={handleLogout} onReturnToBot={() => setShowAdminDashboard(false)} />;
+    return <AdminDashboard userRole={userRole} onLogout={handleLogout} onReturnToBot={() => setShowAdminDashboard(false)} />;
   }
+
+  if (loadingSteps) return <Box sx={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center' }}><CircularProgress /></Box>;
 
   return (
     <div className={`bot-layout ${isDarkMode ? "dark-theme" : "light-theme"}`}>
@@ -197,12 +230,12 @@ function App() {
         </div>
 
         <div className="bot-chat-area">
-          <ChatBox messages={messages} chatEndRef={chatEndRef} startMessage={steps.start.message} />
+          <ChatBox messages={messages} chatEndRef={chatEndRef} startMessage={botSteps.start.message} />
           {isTyping && <div className="typing-msg">Бот пише...</div>}
         </div>
         <div className="bot-controls">
           <Box sx={{ px: 2, pb: 2 }}> 
-            <ButtonGroup options={steps[currentStep]?.options || []} handleClick={handleClick} />
+            <ButtonGroup options={botSteps[currentStep]?.options || []} handleClick={handleClick} />
           </Box>
         </div>
       </div>
@@ -214,7 +247,7 @@ function App() {
         <Button variant="contained" fullWidth className="btn-login-submit" onClick={handleLogin}>УВІЙТИ</Button>
       </Drawer>
 
-      {/* === СКРИНЬКА ДОВІРИ (МОДАЛЬНЕ ВІКНО) === */}
+      {/* === ПОВНІСТЮ ВІДНОВЛЕНА СКРИНЬКА ДОВІРИ === */}
       {showComplaintForm && (
         <div className="bot-modal-overlay">
           <div className="bot-modal-content" style={{ position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
@@ -288,8 +321,7 @@ function App() {
                       className="bot-glass-input" 
                       value={complaintData.contact_value} 
                       onChange={e => {
-                        // Маска для автоматичного формування номера
-                        const numbers = e.target.value.replace(/\D/g, ''); // Залишаємо лише цифри
+                        const numbers = e.target.value.replace(/\D/g, ''); 
                         let formatted = '';
                         if (numbers.length > 0) formatted += '+' + numbers.substring(0, 3);
                         if (numbers.length > 3) formatted += ' (' + numbers.substring(3, 5);
