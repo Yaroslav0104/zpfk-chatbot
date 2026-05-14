@@ -1,0 +1,45 @@
+Час: 12:44:46
+Текст: wertyyiutre
+Помилка cURL: Failed to connect to 127.0.0.1 port 8000: Connection refused
+Відповідь від Python: 
+Збережено Тональність: neutral | Збережено Спам: 0
+-----------------
+Час: 12:46:50
+Текст: wertyyiutre
+Помилка cURL: Failed to connect to 127.0.0.1 port 8000: Connection refused
+Відповідь від Python: 
+Збережено Тональність: neutral | Збережено Спам: 0
+-----------------
+Час: 12:48:32
+Текст: ваимтьбдлорпа
+Помилка cURL: Failed to connect to 127.0.0.1 port 8000: Connection refused
+Відповідь від Python: 
+Збережено Тональність: neutral | Збережено Спам: 0
+-----------------
+Час: 15:12:59
+Текст: куекненкуцй
+Помилка cURL: Failed to connect to 127.0.0.1 port 8000: Connection refused
+Відповідь від Python: 
+Збережено Тональність: neutral | Збережено Спам: 0
+-----------------
+Час: 15:49:38
+Текст: egdhfhf
+Помилка cURL: Немає
+Відповідь від Python: {"is_spam":1,"sentiment":"positive"}
+
+Збережено Тональність: positive | Збережено Спам: 1
+-----------------
+Час: 10:47:06
+Текст: фу блять фу
+Помилка cURL: Немає
+Відповідь від Python: {"is_spam":1,"sentiment":"neutral"}
+
+Збережено Тональність: neutral | Збережено Спам: 1
+-----------------
+Час: 18:48:34
+Текст: блять сука
+Помилка cURL: Немає
+Відповідь від Python: {"is_spam":1,"sentiment":"positive"}
+
+Збережено Тональність: positive | Збережено Спам: 1
+-----------------

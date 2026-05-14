@@ -1,0 +1,72 @@
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center; /* Центрує нижні 4 кнопки на ПК */
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.buttons button {
+  /* Формула для 5 кнопок у ряд на ПК */
+  flex: 0 0 calc((100% - 40px) / 5);
+  max-width: calc((100% - 40px) / 5);
+  
+  padding: 10px 8px;
+  font-size: 13px;
+  border-radius: 8px;
+  border: none;
+  background-color: #3b82f6;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  font-weight: 600;
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.buttons button:hover {
+  background-color: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+}
+
+/* === АДАПТИВНІСТЬ ДЛЯ ПЛАНШЕТІВ (по 3 в ряд) === */
+@media screen and (max-width: 1024px) {
+  .buttons button {
+    flex: 0 0 calc((100% - 20px) / 3);
+    max-width: calc((100% - 20px) / 3);
+  }
+}
+
+/* === СВАЙП-МЕНЮ ДЛЯ МОБІЛЬНИХ (IPHONE/ANDROID) === */
+@media screen and (max-width: 768px) {
+  .buttons {
+    flex-wrap: nowrap; /* Забороняємо перенос на нові рядки */
+    overflow-x: auto; /* Дозволяємо гортати меню вбік */
+    justify-content: flex-start;
+    padding-bottom: 5px; 
+    -webkit-overflow-scrolling: touch; /* Плавний скрол на телефонах */
+  }
+  
+  .buttons button {
+    flex: 0 0 auto; /* Розмір кнопки тепер залежить від тексту */
+    max-width: none;
+    width: auto;
+    padding: 12px 20px;
+    white-space: nowrap; /* ЗАБОРОНЯЄМО розривати слова (ремонтує "Привіт") */
+  }
+  
+  /* Центруємо кнопку, якщо вона одна (наприклад, "Привіт") */
+  .buttons button:only-child {
+    margin: 0 auto;
+  }
+  
+  /* Приховуємо візуальний повзунок скролу, залишаючи можливість гортати */
+  .buttons::-webkit-scrollbar {
+    display: none; 
+  }
+}

@@ -1,0 +1,54 @@
+/* src/components/Charts.css */
+
+/* Плавна поява самих графіків при завантаженні */
+.recharts-wrapper {
+  animation: fadeIn 0.8s ease-in-out;
+}
+
+/* =========================================
+   КРУГОВИЙ ГРАФІК (PIE CHART)
+========================================= */
+.recharts-pie-sector path {
+  transition: all 0.3s ease;
+  outline: none; /* Прибираємо некрасиву синю рамку при кліку */
+}
+
+/* Ефект підсвічування та збільшення при наведенні на шматок графіка */
+.recharts-pie-sector:hover path {
+  filter: drop-shadow(0px 0px 8px rgba(255, 255, 255, 0.4));
+  transform: scale(1.02);
+  transform-origin: center;
+  cursor: pointer;
+}
+
+/* =========================================
+   СТОВПЧАСТИЙ ГРАФІК (BAR CHART)
+========================================= */
+.recharts-bar-rectangle path {
+  transition: all 0.3s ease;
+}
+
+/* Робимо стовпчик яскравішим при наведенні мишки */
+.recharts-bar-rectangle:hover path {
+  filter: brightness(1.2) drop-shadow(0px 0px 5px rgba(255, 255, 255, 0.2));
+  cursor: pointer;
+}
+
+/* Прибираємо лінію, яка з'являється при наведенні на графік (щоб було мінімалістично) */
+.recharts-tooltip-cursor {
+  fill: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* =========================================
+   АНІМАЦІЇ
+========================================= */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
