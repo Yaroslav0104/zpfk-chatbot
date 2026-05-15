@@ -70,11 +70,7 @@ const TonalityBadge = ({ tonality, isDark }) => {
   const current = styles[tonality] || styles.neutral;
 
   return (
-    <span style={{
-      backgroundColor: current.bg, color: current.color,
-      padding: '4px 8px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
-      display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '6px'
-    }}>
+    <span className="tonality-badge" style={{ backgroundColor: current.bg, color: current.color }}>
       {current.icon} {current.text}
     </span>
   );
@@ -89,11 +85,7 @@ const UrgencyBadge = ({ urgency }) => {
   const current = styles[urgency] || styles.medium;
 
   return (
-    <span style={{
-      backgroundColor: current.bg, color: current.color, border: current.border || 'none',
-      padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, 
-      display: 'inline-block', marginTop: '4px'
-    }}>
+    <span className="urgency-badge" style={{ backgroundColor: current.bg, color: current.color, border: current.border || 'none' }}>
       ⚡ {current.text}
     </span>
   );
@@ -630,7 +622,7 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
                           <TableRow>
                             <TableCell sx={{ color: '#9ca3af' }}>Відправник</TableCell>
                             <TableCell sx={{ color: '#9ca3af' }}>Дата</TableCell>
-                            <TableCell sx={{ color: '#9ca3af' }}>Тип, Категорія та Терміновість</TableCell> {/* Оновлений заголовок */}
+                            <TableCell sx={{ color: '#9ca3af' }}>Тип, Категорія та Терміновість</TableCell>
                             <TableCell sx={{ color: '#9ca3af' }}>Повідомлення</TableCell>
                             <TableCell sx={{ color: '#9ca3af' }}>Статус</TableCell>
                             <TableCell align="center" sx={{ color: '#9ca3af' }}>Дії</TableCell>
@@ -644,12 +636,12 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
                               <TableRow key={item.id} className="table-row">
                                 <TableCell>
                                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                    <span style={{ fontWeight: 'bold', color: isDarkMode ? '#e2e8f0' : '#1e293b', fontSize: '15px' }}>
+                                    <span className="table-user-name">
                                       {Number(item.is_anonymous) === 1 || !item.full_name ? "👻 Анонімно" : item.full_name}
                                     </span>
-                                    {item.student_group && <span style={{ fontSize: '13px', color: '#94a3b8' }}>Група: {item.student_group}</span>}
+                                    {item.student_group && <span className="table-user-group">Група: {item.student_group}</span>}
                                     {item.contact_type !== 'none' && item.contact_value && (
-                                      <span style={{ fontSize: '13px', color: '#38bdf8', marginTop: '4px', fontWeight: 500 }}>
+                                      <span className="table-user-contact">
                                         {item.contact_type === 'phone' ? '📞 ' : '📧 '} {item.contact_value}
                                       </span>
                                     )}
@@ -660,13 +652,12 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
                                   {new Date(item.created_at).toLocaleDateString()}
                                 </TableCell>
                                 
-                                {/* ТУТ ТЕПЕР І КАТЕГОРІЯ І ТЕРМІНОВІСТЬ (дубль видалено) */}
                                 <TableCell>
                                   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                    <span style={{ color: APPEAL_LABELS[item.appeal_type]?.color || '#f87171', fontWeight: 700 }}>
+                                    <span className="table-appeal-type" style={{ color: APPEAL_LABELS[item.appeal_type]?.color || '#f87171' }}>
                                       {APPEAL_LABELS[item.appeal_type]?.icon} {APPEAL_LABELS[item.appeal_type]?.text}
                                     </span>
-                                    <span style={{ fontSize: '12px', color: '#94a3b8' }}>{item.category}</span>
+                                    <span className="table-category-text">{item.category}</span>
                                     
                                     <UrgencyBadge urgency={item.urgency} />
                                   </Box>

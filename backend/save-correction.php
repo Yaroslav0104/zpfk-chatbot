@@ -14,19 +14,26 @@ require_once 'db.php'; // Твій файл підключення до PDO
 
 $data = json_decode(file_get_contents("php://input"));
 
-if (!empty($data->text) && isset($data->correct_label)) {
+// Перевіряємо, чи прийшли всі необхідні дані з React
+if (isset($data->id) && isset($data->sentiment)) {
     try {
-        // Зберігаємо текст і правильну цифру (0, 1 або 2)
-        $stmt = $pdo->prepare("INSERT INTO ai_corrections (text, correct_label) VALUES (?, ?)");
-        $stmt->execute([$data->text, $data->correct_label]);
+        // 1. ОНОВЛЮЄМО МІТКУ В ОСНОВНІЙ ТАБЛИЦІ СКАРГ
+        $stmtUpdate = $pdo->prepare("UPDATE complaints SET sentiment = ? WHERE id = ?");
+        $stmtUpdate->execute([$data->sentiment, $data->id]);
+        
+        // 2. ЗБЕРІГАЄМО ТЕКСТ І ЦИФРУ ДЛЯ НАВЧАННЯ ШІ (якщо вони передані)
+        if (!empty($data->text) && isset($data->correct_label)) {
+            $stmtInsert = $pdo->prepare("INSERT INTO ai_corrections (text, correct_label) VALUES (?, ?)");
+            $stmtInsert->execute([$data->text, $data->correct_label]);
+        }
         
         echo json_encode(["success" => true]);
     } catch (Exception $e) {
         http_response_code(500);
-        echo json_encode(["success" => false, "error" => "Помилка запису в БД"]);
+        echo json_encode(["success" => false, "error" => "Помилка запису в БД: " . $e->getMessage()]);
     }
 } else {
     http_response_code(400);
-    echo json_encode(["success" => false, "error" => "Неповні дані"]);
+    echo json_encode(["success" => false, "error" => "Неповні дані: відсутній id або sentiment"]);
 }
 ?>
