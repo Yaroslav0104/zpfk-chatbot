@@ -525,7 +525,20 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
       <Sidebar view={view} setView={(v) => { setView(v); setIsMobileMenuOpen(false); }} onLogout={onLogout} onReturnToBot={onReturnToBot} isMobileMenuOpen={isMobileMenuOpen} />
       
       <Box className="main-content">
-        <AppBar position="static" className="topbar">
+        <AppBar 
+          elevation={0} 
+          className="topbar" 
+          sx={{ 
+            position: { xs: 'fixed', md: 'sticky' },
+            width: { xs: '100%', md: 'auto' },
+            top: 0, 
+            zIndex: 1030, 
+            pt: { xs: 'env(safe-area-inset-top)', md: 0 },
+            background: isDarkMode ? 'rgba(15, 23, 42, 0.85)' : 'rgba(255, 255, 255, 0.9)', 
+            backdropFilter: 'blur(12px)',
+            borderBottom: `1px solid ${isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
+          }}
+        >
           <Toolbar>
             <IconButton edge="start" onClick={() => setIsMobileMenuOpen(true)} sx={{ mr: 2, display: { md: 'none' }, color: isDarkMode ? '#9ca3af' : '#64748b' }}><MenuIcon /></IconButton>
             <Typography variant="h6" sx={{ color: isDarkMode ? "#f3f4f6" : "#0f172a", fontWeight: 700, flexGrow: 1 }}>
@@ -538,7 +551,7 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
           </Toolbar>
         </AppBar>
 
-        <Box sx={{ p: { xs: 1, md: 3 } }}>
+        <Box sx={{ p: { xs: 1, md: 3 }, mt: { xs: 'calc(64px + env(safe-area-inset-top))', md: 0 } }}>
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}><CircularProgress sx={{ color: "#38bdf8" }} /></Box>
           ) : (
@@ -615,9 +628,9 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
                     </Select>
                   </Box>
 
-                  <Paper className="glass-panel" sx={{ p: 0, overflow: 'hidden' }}>
-                    <Box sx={{ width: '100%', overflowX: 'auto' }}>
-                      <Table className="custom-table" sx={{ minWidth: 900 }}>
+                  <Paper className="glass-panel" sx={{ p: 0, overflow: 'hidden', width: '100%', maxWidth: '100%' }}>
+                    <Box sx={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', display: 'block' }}>
+                       <Table className="custom-table" sx={{ minWidth: 900 }}>
                         <TableHead>
                           <TableRow>
                             <TableCell sx={{ color: '#9ca3af' }}>Відправник</TableCell>
@@ -634,7 +647,7 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
                           ) : (
                             displayedComplaints.map((item) => (
                               <TableRow key={item.id} className="table-row">
-                                <TableCell>
+                                <TableCell data-label="Відправник">
                                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                     <span className="table-user-name">
                                       {Number(item.is_anonymous) === 1 || !item.full_name ? "👻 Анонімно" : item.full_name}
@@ -648,11 +661,11 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
                                   </Box>
                                 </TableCell>
                                 
-                                <TableCell sx={{ color: isDarkMode ? '#e2e8f0' : '#1e293b' }}>
+                                <TableCell data-label="Дата" sx={{ color: isDarkMode ? '#e2e8f0' : '#1e293b' }}>
                                   {new Date(item.created_at).toLocaleDateString()}
                                 </TableCell>
                                 
-                                <TableCell>
+                                <TableCell data-label="Інфо">
                                   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                                     <span className="table-appeal-type" style={{ color: APPEAL_LABELS[item.appeal_type]?.color || '#f87171' }}>
                                       {APPEAL_LABELS[item.appeal_type]?.icon} {APPEAL_LABELS[item.appeal_type]?.text}
@@ -663,7 +676,7 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
                                   </Box>
                                 </TableCell>
                                 
-                                <TableCell sx={{ maxWidth: 350, color: isDarkMode ? '#e2e8f0' : '#1e293b' }}>
+                                <TableCell data-label="Повідомлення" sx={{ maxWidth: 350, color: isDarkMode ? '#e2e8f0' : '#1e293b' }}>
                                   <Box sx={{ mb: 1 }}>{item.message}</Box>
                                   <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                                     <TonalityBadge tonality={item.sentiment} isDark={isDarkMode} />
@@ -688,7 +701,7 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
                                   </Box>
                                 </TableCell>
                                 
-                                <TableCell>
+                                <TableCell data-label="Статус">
                                   <Select 
                                     value={item.status || "new"} 
                                     onChange={(e) => handleStatusChange(item.id, e.target.value)} 
@@ -707,7 +720,7 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
                                   </Select>
                                 </TableCell>
                                 
-                                <TableCell align="center">
+                                <TableCell data-label="Дії" align="center">
                                   <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                                     {item.photo_path && <IconButton size="small" color="primary" href={`${API_URL}/${item.photo_path}`} target="_blank"><VisibilityIcon /></IconButton>}
                                     <IconButton size="small" color="error" onClick={() => handleDelete(item.id)}><DeleteIcon /></IconButton>
