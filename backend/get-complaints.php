@@ -15,9 +15,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 try {
     $pdo = new PDO("mysql:host=localhost;dbname=chatbot_system;charset=utf8mb4", "root", "");
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
     $stmt = $pdo->query("SELECT * FROM complaints ORDER BY created_at DESC");
     $complaints = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
+    
     // Щоб React не плутався, можемо віддавати просто масив, як він звик
     echo json_encode($complaints);
 

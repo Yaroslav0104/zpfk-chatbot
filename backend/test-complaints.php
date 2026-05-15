@@ -6,7 +6,7 @@ header('Content-Type: application/json; charset=utf-8');
 $host = 'localhost';
 $dbname = 'chatbot_system';
 $username = 'root';
-$password = ''; // або твій пароль
+$password = '1111'; // або твій пароль
 
 try {
     $pdo = new PDO(
@@ -16,6 +16,7 @@ try {
     );
 
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
     $stmt = $pdo->query("SELECT * FROM complaints ORDER BY created_at DESC");
     $complaints = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

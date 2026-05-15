@@ -11,6 +11,8 @@ $real_hash = password_hash($password, PASSWORD_BCRYPT);
 $pdo->query("DELETE FROM system_users WHERE username = 'admin'");
 
 // Створюємо нового з правильним хешем
-$stmt = $pdo->prepare("I
-о оновлено! Тепер у базі лежить правильний хеш. Можеш видалити цей файл і пробувати входити.";
+$stmt = $pdo->prepare("INSERT INTO system_users (username, password_hash, role) VALUES ('admin', ?, 'admin')");
+$stmt->execute([$real_hash]);
+
+echo "✅ Адміна успішно оновлено! Тепер у базі лежить правильний хеш. Можеш видалити цей файл і пробувати входити.";
 ?>

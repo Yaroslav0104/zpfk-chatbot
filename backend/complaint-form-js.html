@@ -1,12 +1,57 @@
-// Цей файл - це HTML-форма для подачі скарги. Вона містить JavaScript, який відправляє дані форми на сервер (PHP-скрипт) у форматі JSON. Сервер обробляє ці дані і повертає відповідь, яка відображається користувачу.
 <!DOCTYPE html>
 <html lang="uk">
 <head>
   <meta charset="UTF-8">
   <title>Форма скарги</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 700px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+    }
+
+    label {
+      font-weight: bold;
+    }
+
+    input, select, textarea, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      margin-bottom: 16px;
+      box-sizing: border-box;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .message {
+      padding: 12px;
+      margin-top: 15px;
+      border-radius: 6px;
+      display: none;
+    }
+
+    .success {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+  </style>
 </head>
 <body>
   <h2>Подати скаргу</h2>
+
   <form id="complaintForm">
     <label for="full_name">ПІБ:</label>
     <input type="text" id="full_name" name="full_name">
@@ -28,10 +73,12 @@
 
     <label for="message">Текст скарги:</label>
     <textarea id="message" name="message" rows="6" required></textarea>
+
     <label>
       <input type="checkbox" id="is_anonymous" name="is_anonymous" value="1">
       Подати анонімно
     </label>
+
     <button type="submit">Надіслати скаргу</button>
   </form>
 
@@ -100,42 +147,4 @@
     });
   </script>
 </body>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 700px;
-      margin: 40px auto;
-      padding: 20px;
-    }
-    h2 {
-      margin-bottom: 20px;
-    }
-    label {
-      font-weight: bold;
-    }
-    input, select, textarea, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 6px;
-      margin-bottom: 16px;
-      box-sizing: border-box;
-    }
-    button {
-      cursor: pointer;
-    }
-    .message {
-      padding: 12px;
-      margin-top: 15px;
-      border-radius: 6px;
-      display: none;
-    }
-    .success {
-      background: #d4edda;
-      color: #155724;
-    }
-    .error {
-      background: #f8d7da;
-      color: #721c24;
-    }
-  </style>
 </html>

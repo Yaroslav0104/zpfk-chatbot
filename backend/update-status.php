@@ -22,15 +22,8 @@ if (!isset($data['id']) || !isset($data['status'])) {
 require_once 'db.php';
 
 try {
-    // 3. РОЗУМНЕ ОНОВЛЕННЯ СТАТУСУ (З УРАХУВАННЯМ СПАМУ)
-    if ($data['status'] === 'spam') {
-        // Якщо адмін вибирає "У спам" -> ставимо статус і примусово вішаємо мітку ШІ (is_spam = 1)
-        $sql = "UPDATE complaints SET status = :status, is_spam = 1 WHERE id = :id";
-    } else {
-        // Якщо вибрано "В архів", "Нове" чи "В роботі" -> ЗНІМАЄМО мітку спаму (is_spam = 0)
-        $sql = "UPDATE complaints SET status = :status, is_spam = 0 WHERE id = :id";
-    }
-    
+    // 3. ОНОВЛЕННЯ СТАТУСУ В ТАБЛИЦІ COMPLAINTS
+    $sql = "UPDATE complaints SET status = :status WHERE id = :id";
     $stmt = $pdo->prepare($sql);
     
     $stmt->execute([

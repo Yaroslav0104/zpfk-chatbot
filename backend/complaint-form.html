@@ -1,4 +1,3 @@
-//
 <!DOCTYPE html>
 <html lang="uk">
 <head>
@@ -7,17 +6,22 @@
 </head>
 <body>
   <h2>Подати скаргу</h2>
+
   <form action="create-complaint.php" method="POST">
     <div>
       <label>ПІБ:</label><br>
       <input type="text" name="full_name">
     </div>
+
     <br>
+
     <div>
       <label>Група:</label><br>
       <input type="text" name="student_group">
     </div>
+
     <br>
+
     <div>
       <label>Категорія:</label><br>
       <select name="category">
@@ -28,24 +32,32 @@
         <option value="other">Інше</option>
       </select>
     </div>
+
     <br>
+
     <div>
       <label>Тема:</label><br>
       <input type="text" name="subject" required>
     </div>
+
     <br>
+
     <div>
       <label>Текст скарги:</label><br>
       <textarea name="message" rows="6" cols="50" required></textarea>
     </div>
+
     <br>
+
     <div>
       <label>
         <input type="checkbox" name="is_anonymous" value="1">
         Подати анонімно
       </label>
     </div>
+
     <br>
+
     <button type="submit">Надіслати скаргу</button>
   </form>
 </body>

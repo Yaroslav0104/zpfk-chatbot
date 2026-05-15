@@ -16,27 +16,14 @@ $data = json_decode(file_get_contents("php://input"));
 
 if (!empty($data->text) && isset($data->correct_label)) {
     try {
-        // Починаємо транзакцію (щоб безпечно записати у дві таблиці)
-        $pdo->beginTransaction();
-
-        // 1. Зберігаємо текст і правильну цифру для навчання ШІ
-        $stmt1 = $pdo->prepare("INSERT INTO ai_corrections (text, correct_label) VALUES (?, ?)");
-        $stmt1->execute([$data->text, $data->correct_label]);
-        
-        // 2. ОНОВЛЮЄМО ТОНАЛЬНІСТЬ У ТАБЛИЦІ СКАРГ (щоб бейджик змінився назавжди)
-        if (!empty($data->id) && !empty($data->sentiment)) {
-            $stmt2 = $pdo->prepare("UPDATE complaints SET sentiment = ? WHERE id = ?");
-            $stmt2->execute([$data->sentiment, $data->id]);
-        }
-
-        // Підтверджуємо зміни
-        $pdo->commit();
+        // Зберігаємо текст і правильну цифру (0, 1 або 2)
+        $stmt = $pdo->prepare("INSERT INTO ai_corrections (text, correct_label) VALUES (?, ?)");
+        $stmt->execute([$data->text, $data->correct_label]);
         
         echo json_encode(["success" => true]);
     } catch (Exception $e) {
-        $pdo->rollBack(); // Скасовуємо, якщо сталася помилка
         http_response_code(500);
-        echo json_encode(["success" => false, "error" => "Помилка запису в БД: " . $e->getMessage()]);
+        echo json_encode(["success" => false, "error" => "Помилка запису в БД"]);
     }
 } else {
     http_response_code(400);

@@ -1,9 +1,6 @@
 <?php
-// 1. Вказуємо ТОЧНУ адресу фронтенду замість зірочки
-header("Access-Control-Allow-Origin: http://localhost:3000"); 
-
-// 2. Додаємо дозвіл на використання credentials (кукі, токени)
-header("Access-Control-Allow-Credentials: true"); 
+// Обов'язкові заголовки CORS (дозволяють приймати Authorization токен)
+header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 

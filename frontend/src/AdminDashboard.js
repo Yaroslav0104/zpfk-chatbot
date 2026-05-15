@@ -503,7 +503,7 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
 
   const apexAppealOptions = { ...defaultPieOptions, labels: appealTypeData.labels, colors: ['#f87171', '#4ade80', '#38bdf8'] };
   const apexCategoryOptions = { ...defaultPieOptions, labels: categoryData.labels, colors: PIE_COLORS, tooltip: { y: { formatter: (val) => `${val} звернень` } } };
-  const apexSentimentOptions = { ...defaultPieOptions, labels: sentimentData.labels, colors: sentimentData.colors, plotOptions: { pie: { donut: { size: '70%' } } } };
+  const apexSentimentOptions = { ...defaultPieOptions, labels: sentimentData.labels, colors: sentimentData.colors };
   // НОВІ ОПЦІЇ ДЛЯ ТЕРМІНОВОСТІ
   const apexUrgencyOptions = { ...defaultPieOptions, labels: urgencyData.labels, colors: urgencyData.colors };
 
