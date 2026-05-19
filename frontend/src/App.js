@@ -51,7 +51,6 @@ function App() {
 
   const chatEndRef = useRef(null);
 
-  // === МАГІЯ ТУТ: ВИНОСИМО ФУНКЦІЮ ОКРЕМО ===
   const fetchDynamicSteps = async () => {
     try {
       const res = await fetch(`${API_URL}/get-steps.php`);
@@ -59,7 +58,6 @@ function App() {
 
       if (Array.isArray(dbTexts)) {
         setBotSteps(prevSteps => {
-          // Завжди беремо за основу свіжі статичні тексти
           const newSteps = { ...staticSteps };
           dbTexts.forEach(item => {
             if (newSteps[item.id]) {
@@ -76,14 +74,19 @@ function App() {
     }
   };
 
-  // Запускаємо оновлення текстів:
-  // 1. При старті сайту
-  // 2. Кожного разу, коли ми закриваємо Дашборд і повертаємось до бота (!showAdminDashboard)
   useEffect(() => {
     if (!showAdminDashboard) {
       fetchDynamicSteps();
     }
   }, [showAdminDashboard]);
+
+  // === ТРЕКІНГ ВІДВІДУВАНЬ ===
+  useEffect(() => {
+    if (!isAdmin) {
+      fetch(`${API_URL}/track-visit.php`, { method: "POST" })
+        .catch(err => console.error("Помилка запису відвідування:", err));
+    }
+  }, [isAdmin]);
 
   useEffect(() => { 
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); 
@@ -188,7 +191,6 @@ function App() {
     
     setTimeout(() => {
       setIsTyping(false);
-      // Цей рядок гарантує, що старі повідомлення ніколи не зміняться заднім числом:
       setMessages((prev) => [...prev, { sender: "bot", text: botSteps[next].message }]);
       setCurrentStep(next);
     }, 600);
@@ -198,7 +200,7 @@ function App() {
     return <AdminDashboard userRole={userRole} onLogout={handleLogout} onReturnToBot={() => setShowAdminDashboard(false)} />;
   }
 
-  if (loadingSteps) return <Box sx={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center' }}><CircularProgress /></Box>;
+  if (loadingSteps) return <Box className="loading-container"><CircularProgress /></Box>;
 
   return (
     <div className={`bot-layout ${isDarkMode ? "dark-theme" : "light-theme"}`}>
@@ -206,10 +208,10 @@ function App() {
 
       <div className={`bot-sidebar ${isMobileMenuOpen ? "mobile-open" : ""}`}>
         <div className="sidebar-brand">
-          <Typography variant="h5" sx={{ fontWeight: 800 }}>ZPFK</Typography>
+          <Typography variant="h5" className="sidebar-brand-title">ZPFK</Typography>
           <Typography variant="caption" className="brand-sub">Помічник студента</Typography>
         </div>
-        <Box sx={{ mt: "auto", p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        <Box className="sidebar-bottom-actions">
           {isAdmin ? (
             <>
               <Button className="btn-dashboard-sidebar" startIcon={<SettingsIcon />} fullWidth onClick={() => setShowAdminDashboard(true)}>ДАШБОРД</Button>
@@ -223,7 +225,7 @@ function App() {
 
       <div className="bot-content">
         <div className="bot-header-simple">
-          <IconButton className="mobile-menu-btn" onClick={() => setIsMobileMenuOpen(true)} sx={{ display: { md: 'none' }, color: isDarkMode ? '#f3f4f6' : '#0f172a', mr: 1 }}>
+          <IconButton className="mobile-menu-btn" onClick={() => setIsMobileMenuOpen(true)} sx={{ color: isDarkMode ? '#f3f4f6' : '#0f172a' }}>
             <MenuIcon />
           </IconButton>
           <span className="header-title">Твій бот-консультант</span>
@@ -237,37 +239,37 @@ function App() {
           {isTyping && <div className="typing-msg">Бот пише...</div>}
         </div>
         <div className="bot-controls">
-          <Box sx={{ px: 2, pb: 2 }}> 
+          <Box className="bot-controls-box"> 
             <ButtonGroup options={botSteps[currentStep]?.options || []} handleClick={handleClick} />
           </Box>
         </div>
       </div>
 
       <Drawer anchor="right" open={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} PaperProps={{ className: "login-drawer" }}>
-        <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>Вхід для адміністратора</Typography>
+        <Typography variant="h5" className="drawer-title-main">Вхід для адміністратора</Typography>
         <input type="text" placeholder="Логін" className="bot-input-field" value={loginUsername} onChange={(e) => setLoginUsername(e.target.value)} />
         <input type="password" placeholder="Пароль" className="bot-input-field" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} />
         <Button variant="contained" fullWidth className="btn-login-submit" onClick={handleLogin}>УВІЙТИ</Button>
       </Drawer>
 
-      {/* === ПОВНІСТЮ ВІДНОВЛЕНА СКРИНЬКА ДОВІРИ === */}
+      {/* Скринька довіри */}
       {showComplaintForm && (
         <div className="bot-modal-overlay">
-          <div className="bot-modal-content" style={{ position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="bot-modal-content">
             
-            <IconButton onClick={() => setShowComplaintForm(false)} sx={{ position: 'absolute', top: 12, right: 12, color: isDarkMode ? '#9ca3af' : '#64748b' }}>
+            <IconButton className="modal-close-btn" onClick={() => setShowComplaintForm(false)} sx={{ color: isDarkMode ? '#9ca3af' : '#64748b' }}>
               <CloseIcon />
             </IconButton>
 
-            <Box sx={{ textAlign: 'center', mb: 2 }}>
-              <MoveToInboxIcon sx={{ fontSize: 40, color: '#38bdf8', mb: 1 }} />
-              <Typography variant="h5" sx={{ fontWeight: 800 }} className="modal-header-title">Скринька довіри</Typography>
-              <Typography variant="body2" sx={{ color: isDarkMode ? '#9ca3af' : '#64748b', mt: 0.5 }}>
+            <Box className="modal-header-wrapper">
+              <MoveToInboxIcon className="modal-header-icon" />
+              <Typography variant="h5" className="modal-header-title">Скринька довіри</Typography>
+              <Typography variant="body2" className="modal-subtitle" sx={{ color: isDarkMode ? '#9ca3af' : '#64748b' }}>
                 За замовчуванням звернення є повністю анонімним.
               </Typography>
             </Box>
 
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pb: 2 }}>
+            <Box className="modal-form-body">
               
               <div className="bot-modal-field">
                 <label>Тип звернення:</label>
@@ -296,21 +298,19 @@ function App() {
                 </select>
               </div>
 
-              <textarea placeholder="Опишіть ситуацію..." className="bot-glass-input" style={{ minHeight: '120px' }} value={complaintData.message} onChange={e => handleChange('message', e.target.value)} />
+              <textarea placeholder="Опишіть ситуацію..." className="bot-glass-input modal-textarea" value={complaintData.message} onChange={e => handleChange('message', e.target.value)} />
               
-              <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)', my: 1 }} />
+              <Divider className="modal-divider" sx={{ borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }} />
 
-              {/* Чекбокс для відкриття додаткових полів */}
-              <label className="bot-checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '5px 0' }}>
+              <label className="bot-checkbox-label">
                 <input type="checkbox" checked={showPersonalFields} onChange={e => handleTogglePersonalData(e.target.checked)} /> 
-                <span style={{ fontSize: '15px', color: showPersonalFields ? '#38bdf8' : (isDarkMode ? '#e2e8f0' : '#1e293b'), fontWeight: showPersonalFields ? 600 : 400 }}>
+                <span className="checkbox-text" style={{ color: showPersonalFields ? '#38bdf8' : (isDarkMode ? '#e2e8f0' : '#1e293b'), fontWeight: showPersonalFields ? 600 : 400 }}>
                   Вказати мої дані для зворотного зв'язку
                 </span>
               </label>
 
-              {/* Поля, що випадають тільки якщо стоїть галочка */}
               {showPersonalFields && (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2, bgcolor: isDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderRadius: '12px', border: `1px solid ${isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}` }}>
+                <Box className="personal-data-container" sx={{ bgcolor: isDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
                   <input type="text" placeholder="ПІБ" className="bot-glass-input" value={complaintData.full_name} onChange={e => handleChange('full_name', e.target.value)} />
                   <input type="text" placeholder="Група (напр. КН-21)" className="bot-glass-input" value={complaintData.student_group} onChange={e => handleChange('student_group', e.target.value)} />
                   
@@ -323,7 +323,6 @@ function App() {
                     </select>
                   </div>
                   
-                  {/* ШАБЛОН ДЛЯ ТЕЛЕФОНУ */}
                   {complaintData.contact_type === "phone" && (
                     <input 
                       type="tel" 
@@ -344,7 +343,6 @@ function App() {
                     />
                   )}
 
-                  {/* ШАБЛОН ДЛЯ EMAIL */}
                   {complaintData.contact_type === "email" && (
                     <input 
                       type="email" 
@@ -357,8 +355,8 @@ function App() {
                 </Box>
               )}
 
-              <div className="bot-modal-buttons" style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
-                <button onClick={handleComplaintSubmit} className="bot-btn-success" style={{ flex: 1 }} disabled={isSending}>
+              <div className="bot-modal-buttons">
+                <button onClick={handleComplaintSubmit} className="bot-btn-success" disabled={isSending}>
                   {isSending ? "Надсилаємо..." : "НАДІСЛАТИ"}
                 </button>
               </div>
