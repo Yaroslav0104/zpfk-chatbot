@@ -1,13 +1,21 @@
 <?php
+// Дозволяємо CORS
+header("Access-Control-Allow-Origin: *");
+header("Content-Type: application/json; charset=UTF-8");
+
 require_once 'db.php';
 
 try {
-    $stmt = $pdo->query("SELECT text_id as id, message FROM bot_texts");
+    // УВАГА: Переконайся, що таблиця називається bot_texts
+    // Витягуємо id (назва кроку) та message (збережений текст)
+    $stmt = $pdo->query("SELECT id, message FROM bot_texts");
     $texts = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Віддаємо масив у форматі [{"id": "schedule", "message": "текст..."}]
-    echo json_encode($texts, JSON_UNESCAPED_UNICODE);
-} catch (PDOException $e) {
-    echo json_encode(['success' => false, 'error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
+    // Віддаємо масив текстів у React
+    echo json_encode($texts);
+} catch (Exception $e) {
+    // Якщо таблиці ще немає або сталася помилка - віддаємо порожній масив
+    http_response_code(500);
+    echo json_encode([]);
 }
 ?>

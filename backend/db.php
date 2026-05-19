@@ -10,12 +10,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     exit(0);
 }
 
-// 3.стандартний код
+// 3. Твій стандартний код
 header('Content-Type: application/json; charset=utf-8');
 
 require_once 'config.php';
 
 try {
+    // Переконайся, що у config.php вказано правильні дані (root і порожній пароль для XAMPP)
     $pdo = new PDO(
         "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
         $username,
