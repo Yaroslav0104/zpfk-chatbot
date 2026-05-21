@@ -49,6 +49,12 @@ function App() {
     message: "", is_anonymous: 1, contact_type: "none", contact_value: ""
   });
 
+  useEffect(() => {
+    // Відправляємо тихий сигнал на сервер, що на сайт зайшла людина
+    fetch("http://localhost/backend/track-visit.php", {
+      method: "POST"
+    }).catch(err => console.log("Помилка трекінгу:", err));
+  }, []);
   const chatEndRef = useRef(null);
 
   const fetchDynamicSteps = async () => {

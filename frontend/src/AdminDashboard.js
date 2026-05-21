@@ -306,6 +306,45 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
     setSnackbar({ open: true, message: "Звіт Excel згенеровано!", type: "success" });
   };
 
+  // Розділяємо функції, щоб оновлювати їх з різною частотою
+  const fetchComplaints = async () => {
+    try {
+      const res = await fetch(`${API_URL}/get-complaints.php`);
+      if (res.ok) {
+        const jsonData = await res.json();
+        setComplaints(Array.isArray(jsonData) ? jsonData : []);
+      }
+    } catch (err) { console.error("Помилка оновлення скарг:", err); }
+  };
+
+  const fetchVisits = async () => {
+    try {
+      const visitsRes = await fetch(`${API_URL}/get-visits.php?t=${new Date().getTime()}`);
+      if (visitsRes.ok) setDailyVisitors((await visitsRes.json()).today_visits || 0);
+    } catch (err) { console.error("Помилка відвідувачів:", err); }
+  };
+
+  useEffect(() => {
+    // 1. Перше завантаження при відкритті дашборду
+    const loadInitialData = async () => {
+      setLoading(true);
+      await fetchComplaints();
+      await fetchVisits();
+      setLoading(false);
+    };
+    loadInitialData();
+
+    // 2. АВТОМАТИЧНЕ ОНОВЛЕННЯ В РЕАЛЬНОМУ ЧАСІ
+    const visitsTimer = setInterval(fetchVisits, 5000); // Оновлюємо відвідувачів кожні 5 секунд
+    const complaintsTimer = setInterval(fetchComplaints, 15000); // Перевіряємо нові скарги кожні 15 секунд
+
+    // 3. Зупиняємо таймери, якщо адмін закрив дашборд
+    return () => {
+      clearInterval(visitsTimer);
+      clearInterval(complaintsTimer);
+    };
+  }, []);
+  
   const handleStatusChange = async (id, newStatus) => {
     try {
       const response = await fetch(`${API_URL}/update-status.php`, {

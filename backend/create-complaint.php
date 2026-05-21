@@ -1,39 +1,50 @@
 <?php
-// Дозволяємо доступ з твого React (дозволяємо CORS)
+// =========================================================
+// 1. ПІДКЛЮЧЕННЯ PHPMAILER ТА НАЛАШТУВАННЯ CORS
+// =========================================================
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
+require 'vendor/autoload.php';
+
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS, PUT, DELETE");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-// Обробка обов'язкового попереднього (preflight) запиту від браузера
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     http_response_code(200);
     exit(0);
 }
 
+// =========================================================
 // 2. ОТРИМАННЯ ДАНИХ ВІД REACT
-$data = $_POST;
+// =========================================================
+$data = json_decode(file_get_contents("php://input"), true);
+if (empty($data)) {
+    $data = $_POST;
+}
 
 if (empty($data)) {
-    echo json_encode(["success" => false, "message" => "Порожні дані запиту. Перевірте, чи React відправляє FormData."]);
+    echo json_encode(["success" => false, "message" => "Порожні дані запиту."]);
     exit;
 }
 
-// 3. ПІДКЛЮЧЕННЯ ДО БД (через спільний файл)
+// =========================================================
+// 3. ПІДКЛЮЧЕННЯ ДО БД
+// =========================================================
 require_once 'db.php';
 
 try {
-    // Починаємо транзакцію (щоб записати дані у 2 таблиці безпечно)
     $pdo->beginTransaction(); 
 
-    // 4. ГЕНЕРАЦІЯ УНІКАЛЬНОГО КОДУ ЗВЕРНЕННЯ (напр. ZPFK-9B3F2A)
+    // 4. ГЕНЕРАЦІЯ УНІКАЛЬНОГО КОДУ ЗВЕРНЕННЯ
     $tracking_code = 'ZPFK-' . strtoupper(substr(uniqid(), -6));
 
     // 4.5 АНАЛІЗ ЧЕРЕЗ ШІ-СЕРВЕР (PYTHON)
     $ai_sentiment = 'neutral'; 
-    $ai_is_spam = 0;           
+    $ai_is_spam = 0;            
     $text_to_analyze = $data['message'] ?? '';
     
-    // Починаємо записувати лог
     $debug_info = "Час: " . date('H:i:s') . "\nТекст: " . $text_to_analyze . "\n";
 
     if (!empty($text_to_analyze)) {
@@ -63,11 +74,9 @@ try {
     }
     
     $debug_info .= "Збережено Тональність: $ai_sentiment | Збережено Спам: $ai_is_spam\n-----------------\n";
-    
-    // Зберігаємо лог у файл ai_log.txt у тій самій папці, де лежить скрипт
     file_put_contents(__DIR__ . '/ai_log.txt', $debug_info, FILE_APPEND);
 
-    // 5. ЗАПИС У ТАБЛИЦЮ COMPLAINTS (додано urgency)
+    // 5. ЗАПИС У ТАБЛИЦЮ COMPLAINTS
     $sql = "INSERT INTO complaints (
         tracking_code, full_name, student_group, category, urgency, message, 
         is_anonymous, contact_type, contact_value, appeal_type, 
@@ -84,19 +93,16 @@ try {
         ':full_name'     => $data['full_name'] ?? null,
         ':student_group' => $data['student_group'] ?? null,
         ':category'      => $data['category'] ?? 'other',
-        ':urgency'       => $data['urgency'] ?? 'medium', // Терміновість
+        ':urgency'       => $data['urgency'] ?? 'medium', 
         ':message'       => $data['message'] ?? '',
         ':is_anonymous'  => (int)($data['is_anonymous'] ?? 0),
         ':contact_type'  => $data['contact_type'] ?? 'none',
         ':contact_value' => $data['contact_value'] ?? null,
         ':appeal_type'   => $data['appeal_type'] ?? 'complaint',
-        
-        // ДАНІ З PYTHON
         ':sentiment'     => $ai_sentiment, 
         ':is_spam'       => $ai_is_spam
     ]);
 
-    // Отримуємо ID щойно створеної скарги
     $complaint_id = $pdo->lastInsertId();
 
     // 6. ЗАПИС У ТАБЛИЦЮ ІСТОРІЇ (complaint_history)
@@ -107,31 +113,27 @@ try {
         ':action_description' => 'Звернення створено користувачем'
     ]);
 
-    // Підтверджуємо транзакцію (зберігаємо все в БД)
     $pdo->commit();
 
     // =========================================================
-    // --- ВІДПРАВКА СПОВІЩЕННЯ НА ПОШТУ АДМІНІСТРАТОРА ---
+    // 7. ВІДПРАВКА СПОВІЩЕННЯ НА ПОШТУ АДМІНІСТРАТОРА (PHPMailer)
     // =========================================================
+    // Твій Gmail, куди мають приходити всі листи
+    $admin_email = 'kornijcuknazarij13@gmail.com'; 
+    $subject = "Нове звернення в боті ZPFK";
     
-    $admin_email = "zpgpfk@gmail.com"; 
-    $subject = "Нове звернення в боті ZPFK [Код: $tracking_code]";
-    
-    // Підготовка змінних для уникнення помилок
     $cat = $data['category'] ?? 'Не вказано';
     $msg = $data['message'] ?? '';
     $anon = (int)($data['is_anonymous'] ?? 1);
     
-    // Виправлено $$body на $body
     $body = "Студент залишив нове звернення!\n\n";
     $body .= "📌 Категорія: " . $cat . "\n";
     
-    // ДОДАЄМО КРАСИВЕ ВІДОБРАЖЕННЯ ТЕРМІНОВОСТІ
     $urgency_labels = ['low' => '🟢 Низька', 'medium' => '🟡 Середня', 'high' => '🔴 Висока'];
     $urg_text = $urgency_labels[$data['urgency'] ?? 'medium'];
     $body .= "⚡ Терміновість: " . $urg_text . "\n";
     
-    $body .= "📝 Повідомлення: " . $msg . "\n";
+    $body .= "📝 Повідомлення: " . $msg . "\n\n";
     
     if ($anon === 0) {
         $body .= "👤 Від: " . ($data['full_name'] ?? 'Не вказано') . " (Група: " . ($data['student_group'] ?? '-') . ")\n";
@@ -140,15 +142,35 @@ try {
         $body .= "👻 Тип: Анонімне звернення\n";
     }
 
-    $headers = "From: bot@zpfk.edu.ua\r\n";
-    $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+    $mail = new PHPMailer(true);
 
-    // Відправляємо листа (@ ігнорує помилки локального сервера)
-    @mail($admin_email, $subject, $body, $headers);
+    try {
+        $mail->isSMTP();
+        $mail->Host       = 'smtp.gmail.com'; // Сервер Gmail
+        $mail->SMTPAuth   = true;
+        
+        // 🔴 ВПИШИ СВОЮ НОВУ ПОШТУ Gmail ЗАМІСТЬ 'твоя_пошта@gmail.com'
+        $mail->Username   = 'zpfkbot@gmail.com'; 
+        $mail->Password   = 'rorxicgwujawwltv'; // Твій новий пароль додатка Gmail
+        
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS; // Захист для Gmail
+        $mail->Port       = 587;                            // Порт для Gmail
+        $mail->CharSet    = 'UTF-8';
 
+        // 🔴 ТУТ ТЕЖ ВПИШИ СВОЮ ПОШТУ Gmail
+        $mail->setFrom('zpfkbot@gmail.com', 'ZPFK Bot'); 
+        $mail->addAddress($admin_email); 
+
+        $mail->isHTML(false); 
+        $mail->Subject = $subject;
+        $mail->Body    = $body;
+
+        $mail->send();
+    } catch (Exception $e) {
+        file_put_contents(__DIR__ . '/ai_log.txt', "Помилка пошти: {$mail->ErrorInfo}\n", FILE_APPEND);
+    }
     // =========================================================
 
-    // 7. ВІДПРАВЛЯЄМО ВІДПОВІДЬ У REACT
     echo json_encode([
         "success" => true, 
         "message" => "Скаргу успішно створено!",
@@ -156,7 +178,6 @@ try {
     ]);
 
 } catch (Exception $e) {
-    // Якщо сталася помилка — скасовуємо всі записи
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
