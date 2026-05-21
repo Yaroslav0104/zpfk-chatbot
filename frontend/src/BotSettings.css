@@ -1,0 +1,141 @@
+/* === BotSettings.css === */
+
+/* Головний контейнер налаштувань */
+.bot-settings-container {
+  padding-bottom: 32px;
+  position: relative;
+}
+
+/* === ПАНЕЛЬ РЕДАГУВАННЯ === */
+.editor-panel {
+  padding: 24px;
+  border-radius: 8px;
+  margin-bottom: 32px;
+  transition: all 0.3s ease;
+}
+
+.editor-panel.dark {
+  background-color: #1e293b;
+  border: 1px solid #334155;
+}
+
+.editor-panel.light {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+
+.editor-title {
+  color: #38bdf8;
+  margin-bottom: 16px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.editor-subtitle {
+  color: #94a3b8;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+/* === МОБІЛЬНИЙ ВИГЛЯД (Картки) === */
+.mobile-step-card {
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.mobile-step-card.dark {
+  background-color: #0f172a;
+  border: 1px solid #334155;
+}
+
+.mobile-step-card.light {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+
+.mobile-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.mobile-step-id {
+  font-weight: bold;
+  font-size: 15px;
+}
+
+.mobile-step-id.dark { color: #e2e8f0; }
+.mobile-step-id.light { color: #0f172a; }
+
+.mobile-step-preview {
+  font-size: 14px;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.mobile-step-preview.dark { color: #cbd5e1; }
+.mobile-step-preview.light { color: #475569; }
+
+/* === ДЕСКТОПНИЙ ВИГЛЯД (Таблиця) === */
+.desktop-table-container {
+  width: 100%;
+  max-height: calc(100vh - 150px);
+  overflow: auto;
+  border-radius: 8px;
+}
+
+.desktop-table-container.dark {
+  background-color: #1e293b;
+  border: 1px solid #334155;
+}
+
+.desktop-table-container.light {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.table-row-custom {
+  transition: background-color 0.2s ease;
+}
+
+.table-row-custom.dark { background-color: #0f172a; }
+.table-row-custom.dark:hover { background-color: rgba(30, 41, 59, 0.8); }
+.table-row-custom.dark td { border-bottom: 1px solid #1e293b; }
+
+.table-row-custom.light { background-color: #ffffff; }
+.table-row-custom.light:hover { background-color: #f1f5f9; }
+.table-row-custom.light td { border-bottom: 1px solid #f1f5f9; }
+
+.table-cell-id {
+  font-weight: 600;
+  vertical-align: top;
+  padding-top: 20px;
+}
+
+.table-cell-preview {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* === КНОПКИ === */
+.btn-edit-step {
+  background-color: #3b82f6 !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.5px !important;
+  border-radius: 6px !important;
+  padding: 4px 16px !important;
+  box-shadow: none !important;
+}
+
+.btn-edit-step:hover {
+  background-color: #2563eb !important;
+}

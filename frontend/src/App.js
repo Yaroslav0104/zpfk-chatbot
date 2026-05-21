@@ -16,7 +16,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close'; 
 import MoveToInboxIcon from '@mui/icons-material/MoveToInbox';
 
-const API_URL = "http://localhost/backend";
+const API_URL = "http://localhost/backend"; //const API_URL = "/backend";//
 
 function App() {
   const [messages, setMessages] = useState([]);
@@ -79,6 +79,7 @@ function App() {
       fetchDynamicSteps();
     }
   }, [showAdminDashboard]);
+
 
   // === ТРЕКІНГ ВІДВІДУВАНЬ (Із захистом від оновлення F5) ===
   useEffect(() => {

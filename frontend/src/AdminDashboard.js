@@ -36,7 +36,8 @@ import { Document, Packer, Paragraph, TextRun, Table as WordTable, TableRow as W
 import { saveAs } from "file-saver";
 import * as XLSX from "xlsx";
 
-const API_URL = "http://localhost/backend"; 
+const API_URL = "http://localhost/backend"; //const API_URL = "/backend";//
+
 const PIE_COLORS = ['#38bdf8', '#fbbf24', '#4ade80', '#f87171', '#c084fc', '#f472b6'];
 
 // === СЛОВНИКИ ТА СТИЛІ ===

@@ -5,10 +5,13 @@ import {
   Chip, useMediaQuery, useTheme, Divider
 } from "@mui/material";
 
-// Шлях до твого файлу steps.js
+// Підключаємо файл текстів та наш новий CSS
 import defaultSteps from './data/steps.js'; 
+import './BotSettings.css'; 
 
-const API_URL = "http://localhost/backend"; 
+const API_URL = window.location.hostname === "localhost" 
+  ? "http://localhost/backend" 
+  : "/backend";
 
 export default function BotSettings({ isDarkMode, setSnackbar }) {
   const [botTexts, setBotTexts] = useState([]); 
@@ -20,16 +23,16 @@ export default function BotSettings({ isDarkMode, setSnackbar }) {
   
   const [loading, setLoading] = useState(true);
 
-  // Адаптивність
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const topRef = useRef(null);
+
+  const themeMode = isDarkMode ? 'dark' : 'light';
 
   useEffect(() => {
     fetchTexts();
   }, []);
 
-  // Додано параметр silent, щоб не показувати "крутилку" при фоновому оновленні
   const fetchTexts = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
@@ -51,7 +54,8 @@ export default function BotSettings({ isDarkMode, setSnackbar }) {
           return {
             id: key,
             message: dbMatch ? dbMatch.message : step.message,
-            isModified: !!dbMatch 
+            isModified: !!dbMatch,
+            updated_at: dbMatch ? dbMatch.updated_at : null 
           };
         })
         .filter(item => item.message);
@@ -88,12 +92,8 @@ export default function BotSettings({ isDarkMode, setSnackbar }) {
       
       if (result.success) {
         setSnackbar({ open: true, message: "Текст успішно оновлено!", type: "success" });
-        
-        setEditingItem(null); // Миттєво закриваємо вікно редактора
-        
-        // МАГІЯ ТУТ: Тихо оновлюємо дані з БД без перезавантаження сторінки
+        setEditingItem(null); 
         fetchTexts(true); 
-        
       } else {
         setSnackbar({ open: true, message: "Помилка: " + result.error, type: "error" });
       }
@@ -129,31 +129,43 @@ export default function BotSettings({ isDarkMode, setSnackbar }) {
     return htmlString.replace(/<[^>]*>?/gm, ''); 
   };
 
+  const isRecentlyUpdated = (updatedAtStr) => {
+    if (!updatedAtStr) return false;
+    const updateTime = new Date(updatedAtStr.replace(/-/g, '/')).getTime();
+    const now = new Date().getTime();
+    const hours24 = 24 * 60 * 60 * 1000;
+    return (now - updateTime) <= hours24;
+  };
+
+  const renderStatusChip = (textItem) => {
+    if (!textItem.isModified) {
+      return <Chip label="ОРИГІНАЛ" sx={{ color: '#94a3b8', borderColor: 'rgba(148, 163, 184, 0.4)', borderRadius: 1.5, fontWeight: 600, fontSize: '11px', letterSpacing: '0.5px' }} size="small" variant="outlined" />;
+    }
+    
+    if (isRecentlyUpdated(textItem.updated_at)) {
+      return <Chip label="ЩОЙНО ЗМІНЕНО" sx={{ color: '#4ade80', borderColor: 'rgba(74, 222, 128, 0.4)', borderRadius: 1.5, fontWeight: 600, fontSize: '11px', letterSpacing: '0.5px' }} size="small" variant="outlined" />;
+    }
+
+    return <Chip label="КАСТОМНИЙ" sx={{ color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.4)', borderRadius: 1.5, fontWeight: 600, fontSize: '11px', letterSpacing: '0.5px' }} size="small" variant="outlined" />;
+  };
+
   if (loading) {
     return <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}><CircularProgress sx={{ color: "#38bdf8" }} /></Box>;
   }
 
-  // Кольори для UI
-  const tableHeaderBg = isDarkMode ? '#1e293b' : '#f8fafc';
-  const tableRowBg = isDarkMode ? '#0f172a' : '#ffffff';
-  const tableRowHoverBg = isDarkMode ? 'rgba(30, 41, 59, 0.8)' : '#f1f5f9';
-  const borderColor = isDarkMode ? '#334155' : '#e2e8f0';
+  // Залишаємо мінімальні кольори для інпутів (оскільки Material-UI інпути краще стилізувати через sx)
   const inputBg = isDarkMode ? '#0f172a' : '#f8fafc';
   const inputTextColor = isDarkMode ? '#f1f5f9' : '#0f172a';
+  const borderColor = isDarkMode ? '#334155' : '#e2e8f0';
 
   return (
-    <Box sx={{ pb: 4 }}>
+    <Box className="bot-settings-container">
       <div ref={topRef} style={{ position: 'absolute', top: 0 }} />
 
       {/* ПАНЕЛЬ РЕДАГУВАННЯ */}
       {editingItem && (
-        <Paper elevation={0} sx={{ 
-          bgcolor: isDarkMode ? '#1e293b' : '#ffffff', 
-          p: isMobile ? 2 : 3, 
-          borderRadius: 2, mb: 4, 
-          border: `1px solid ${borderColor}` 
-        }}>
-          <Typography variant="subtitle2" sx={{ color: '#38bdf8', mb: 2, fontWeight: 'bold', textTransform: 'uppercase' }}>
+        <Paper elevation={0} className={`editor-panel ${themeMode}`}>
+          <Typography variant="subtitle2" className="editor-title">
             ✏️ Редагування блоку: {editingItem.id}
           </Typography>
           
@@ -171,7 +183,7 @@ export default function BotSettings({ isDarkMode, setSnackbar }) {
           />
 
           <Divider sx={{ mb: 3, borderColor: borderColor }} />
-          <Typography variant="body2" sx={{ color: '#94a3b8', mb: 1, fontWeight: 'bold' }}>
+          <Typography variant="body2" className="editor-subtitle">
             🔗 Налаштування посилання (необов'язково)
           </Typography>
 
@@ -209,15 +221,15 @@ export default function BotSettings({ isDarkMode, setSnackbar }) {
         // МОБІЛЬНИЙ ВИГЛЯД
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {botTexts.map((textItem) => (
-            <Paper key={textItem.id} elevation={0} sx={{ p: 2, borderRadius: 2, bgcolor: tableRowBg, border: `1px solid ${borderColor}` }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5, alignItems: 'center' }}>
-                <Typography sx={{ color: isDarkMode ? '#e2e8f0' : '#0f172a', fontWeight: 'bold', fontSize: '15px' }}>{textItem.id}</Typography>
-                {textItem.isModified ? <Chip label="ЗМІНЕНО" sx={{ color: '#4ade80', borderColor: 'rgba(74, 222, 128, 0.4)', borderRadius: 1.5, fontWeight: 600, fontSize: '11px' }} size="small" variant="outlined" /> : <Chip label="ОРИГІНАЛ" sx={{ color: '#94a3b8', borderColor: 'rgba(148, 163, 184, 0.4)', borderRadius: 1.5, fontWeight: 600, fontSize: '11px' }} size="small" variant="outlined" />}
+            <Paper key={textItem.id} elevation={0} className={`mobile-step-card ${themeMode}`}>
+              <Box className="mobile-card-header">
+                <Typography className={`mobile-step-id ${themeMode}`}>{textItem.id}</Typography>
+                {renderStatusChip(textItem)}
               </Box>
-              <Typography sx={{ color: isDarkMode ? '#cbd5e1' : '#475569', fontSize: '14px', mb: 2.5, lineHeight: 1.5 }}>
+              <Typography className={`mobile-step-preview ${themeMode}`}>
                 {stripHtml(textItem.message).substring(0, 100)}...
               </Typography>
-              <Button fullWidth variant="contained" sx={{ bgcolor: '#3b82f6', fontWeight: 600, letterSpacing: '0.5px' }} onClick={() => startEditing(textItem)}>
+              <Button fullWidth variant="contained" className="btn-edit-step" onClick={() => startEditing(textItem)}>
                 РЕДАГУВАТИ
               </Button>
             </Paper>
@@ -225,14 +237,14 @@ export default function BotSettings({ isDarkMode, setSnackbar }) {
         </Box>
       ) : (
         // ДЕСКТОПНИЙ ВИГЛЯД
-        <Box sx={{ width: '100%', maxHeight: 'calc(100vh - 150px)', overflow: 'auto', borderRadius: 2, border: `1px solid ${borderColor}`, bgcolor: tableHeaderBg }}>
+        <Box className={`desktop-table-container ${themeMode}`}>
           <Table stickyHeader sx={{ minWidth: 800, tableLayout: 'fixed' }}>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ width: '15%', bgcolor: tableHeaderBg, color: '#94a3b8', borderBottom: `1px solid ${borderColor}`, fontWeight: 600 }}>ID Кроку</TableCell>
-                <TableCell sx={{ width: '55%', bgcolor: tableHeaderBg, color: '#94a3b8', borderBottom: `1px solid ${borderColor}`, fontWeight: 600 }}>Попередній перегляд</TableCell>
-                <TableCell align="center" sx={{ width: '15%', bgcolor: tableHeaderBg, color: '#94a3b8', borderBottom: `1px solid ${borderColor}`, fontWeight: 600 }}>Статус</TableCell>
-                <TableCell align="center" sx={{ width: '15%', bgcolor: tableHeaderBg, color: '#94a3b8', borderBottom: `1px solid ${borderColor}`, fontWeight: 600 }}>Дії</TableCell>
+                <TableCell sx={{ width: '15%', color: '#94a3b8', borderBottom: `1px solid ${borderColor}`, fontWeight: 600, bgcolor: isDarkMode ? '#1e293b' : '#f8fafc' }}>ID Кроку</TableCell>
+                <TableCell sx={{ width: '55%', color: '#94a3b8', borderBottom: `1px solid ${borderColor}`, fontWeight: 600, bgcolor: isDarkMode ? '#1e293b' : '#f8fafc' }}>Попередній перегляд</TableCell>
+                <TableCell align="center" sx={{ width: '15%', color: '#94a3b8', borderBottom: `1px solid ${borderColor}`, fontWeight: 600, bgcolor: isDarkMode ? '#1e293b' : '#f8fafc' }}>Статус</TableCell>
+                <TableCell align="center" sx={{ width: '15%', color: '#94a3b8', borderBottom: `1px solid ${borderColor}`, fontWeight: 600, bgcolor: isDarkMode ? '#1e293b' : '#f8fafc' }}>Дії</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -240,18 +252,18 @@ export default function BotSettings({ isDarkMode, setSnackbar }) {
                 const cleanText = stripHtml(textItem.message);
 
                 return (
-                  <TableRow key={textItem.id} sx={{ bgcolor: tableRowBg, '&:hover': { bgcolor: tableRowHoverBg }, transition: 'background-color 0.2s ease', '& td': { borderBottom: `1px solid ${isDarkMode ? '#1e293b' : '#f1f5f9'}` } }}>
-                    <TableCell sx={{ color: isDarkMode ? '#f8fafc' : '#0f172a', fontWeight: 600, verticalAlign: 'top', pt: 2.5 }}>{textItem.id}</TableCell>
+                  <TableRow key={textItem.id} className={`table-row-custom ${themeMode}`}>
+                    <TableCell className="table-cell-id" sx={{ color: isDarkMode ? '#f8fafc' : '#0f172a' }}>{textItem.id}</TableCell>
                     <TableCell sx={{ verticalAlign: 'top', pt: 2 }}>
-                      <Box sx={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'normal', color: isDarkMode ? '#cbd5e1' : '#475569', fontSize: '14px', lineHeight: 1.6 }}>
+                      <Box className="table-cell-preview" sx={{ color: isDarkMode ? '#cbd5e1' : '#475569' }}>
                         {cleanText}
                       </Box>
                     </TableCell>
                     <TableCell align="center" sx={{ verticalAlign: 'top', pt: 2.5 }}>
-                      {textItem.isModified ? <Chip label="ЗМІНЕНО" sx={{ color: '#4ade80', borderColor: 'rgba(74, 222, 128, 0.4)', borderRadius: 1.5, fontWeight: 600, fontSize: '11px', letterSpacing: '0.5px' }} size="small" variant="outlined" /> : <Chip label="ОРИГІНАЛ" sx={{ color: '#94a3b8', borderColor: 'rgba(148, 163, 184, 0.4)', borderRadius: 1.5, fontWeight: 600, fontSize: '11px', letterSpacing: '0.5px' }} size="small" variant="outlined" />}
+                      {renderStatusChip(textItem)}
                     </TableCell>
                     <TableCell align="center" sx={{ verticalAlign: 'top', pt: 2 }}>
-                      <Button variant="contained" size="small" sx={{ bgcolor: '#3b82f6', color: '#ffffff', fontWeight: 600, letterSpacing: '0.5px', borderRadius: '6px', px: 2, boxShadow: 'none', '&:hover': { bgcolor: '#2563eb', boxShadow: 'none' } }} onClick={() => startEditing(textItem)}>
+                      <Button variant="contained" size="small" className="btn-edit-step" onClick={() => startEditing(textItem)}>
                         РЕДАГУВАТИ
                       </Button>
                     </TableCell>
@@ -263,5 +275,5 @@ export default function BotSettings({ isDarkMode, setSnackbar }) {
         </Box>
       )}
     </Box>
-    );
+  );
 }
