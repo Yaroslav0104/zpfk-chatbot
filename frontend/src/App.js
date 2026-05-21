@@ -49,12 +49,6 @@ function App() {
     message: "", is_anonymous: 1, contact_type: "none", contact_value: ""
   });
 
-  useEffect(() => {
-    // Відправляємо тихий сигнал на сервер, що на сайт зайшла людина
-    fetch("http://localhost/backend/track-visit.php", {
-      method: "POST"
-    }).catch(err => console.log("Помилка трекінгу:", err));
-  }, []);
   const chatEndRef = useRef(null);
 
   const fetchDynamicSteps = async () => {
@@ -86,11 +80,29 @@ function App() {
     }
   }, [showAdminDashboard]);
 
-  // === ТРЕКІНГ ВІДВІДУВАНЬ ===
+  // === ТРЕКІНГ ВІДВІДУВАНЬ (Із захистом від оновлення F5) ===
   useEffect(() => {
+    // Адмінів не рахуємо в статистику
     if (!isAdmin) {
-      fetch(`${API_URL}/track-visit.php`, { method: "POST" })
-        .catch(err => console.error("Помилка запису відвідування:", err));
+      // Перевіряємо, чи є мітка поточної сесії
+      const isVisited = sessionStorage.getItem('zpfk_session_active');
+
+      if (!isVisited) {
+        // Якщо мітки немає (людина щойно відкрила вкладку) — фіксуємо візит
+        fetch(`${API_URL}/track-visit.php`, { method: "POST" })
+          .then(res => res.json())
+          .then(data => {
+             if (data.success) {
+               // Ставимо мітку, яка зникне ТІЛЬКИ при повному закритті вкладки
+               sessionStorage.setItem('zpfk_session_active', 'true');
+               console.log("Новий візит зараховано!");
+             }
+          })
+          .catch(err => console.error("Помилка запису відвідування:", err));
+      } else {
+        // Якщо мітка є — це просто F5, нічого на сервер не відправляємо
+        console.log("Оновлення сторінки: візит проігноровано.");
+      }
     }
   }, [isAdmin]);
 

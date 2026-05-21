@@ -3,13 +3,14 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 
-require 'config.php';
+// 1. ВИПРАВЛЕНО: Підключаємо правильний файл бази даних
+require_once 'db.php';
 
 $date = date('Y-m-d');
 
 try {
-    // Рахуємо скільки унікальних записів є за сьогодні
-    $stmt = $pdo->prepare("SELECT COUNT(id) as today_visits FROM visits WHERE visit_date = ?");
+    // 2. ВИПРАВЛЕНО: Додали функцію DATE(), щоб порівнювати лише дні, ігноруючи години/хвилини
+    $stmt = $pdo->prepare("SELECT COUNT(id) as today_visits FROM visits WHERE DATE(visit_date) = ?");
     $stmt->execute([$date]);
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
