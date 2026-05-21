@@ -732,10 +732,10 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
                                         bgcolor: isDarkMode ? "rgba(255,255,255,0.05)" : "#f8fafc"
                                       }}
                                     >
-                                      <MenuItem value="" disabled>Виправити ШІ 🎓</MenuItem>
-                                      <MenuItem value="positive">Вказати як Позитив (0)</MenuItem>
-                                      <MenuItem value="neutral">Вказати як Нейтраль (1)</MenuItem>
-                                      <MenuItem value="negative">Вказати як Негатив (2)</MenuItem>
+                                      <MenuItem value="" disabled>Виправити</MenuItem>
+                                      <MenuItem value="positive">Вказати як Позитив</MenuItem>
+                                      <MenuItem value="neutral">Вказати як Нейтраль</MenuItem>
+                                      <MenuItem value="negative">Вказати як Негатив</MenuItem>
                                     </Select>
                                   </Box>
                                 </TableCell>
