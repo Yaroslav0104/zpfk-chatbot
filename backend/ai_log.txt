@@ -1,0 +1,54 @@
+Час: 13:45:17
+Текст: dfghfds
+Помилка cURL: Немає
+Відповідь від Python: {"is_spam":1,"sentiment":"positive"}
+
+Збережено Тональність: positive | Збережено Спам: 1
+-----------------
+Помилка пошти: SMTP Error: Could not authenticate.
+Час: 13:47:49
+Текст: sdfhgjkhjgf
+Помилка cURL: Немає
+Відповідь від Python: {"is_spam":1,"sentiment":"positive"}
+
+Збережено Тональність: positive | Збережено Спам: 1
+-----------------
+Помилка пошти: SMTP Error: Could not authenticate.
+Час: 13:49:10
+Текст: Привіт
+Помилка cURL: Немає
+Відповідь від Python: {"is_spam":1,"sentiment":"neutral"}
+
+Збережено Тональність: neutral | Збережено Спам: 1
+-----------------
+Помилка пошти: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server Additional SMTP info: php_network_getaddresses: getaddrinfo failed: No such host is known. 
+Час: 13:52:02
+Текст: іваіаіваіваіаіваіавіаіаічяіфваваівіФ
+Помилка cURL: Немає
+Відповідь від Python: {"is_spam":1,"sentiment":"positive"}
+
+Збережено Тональність: positive | Збережено Спам: 1
+-----------------
+Помилка пошти: SMTP Error: Could not authenticate.
+Час: 13:59:15
+Текст: аррпарар
+Помилка cURL: Немає
+Відповідь від Python: {"is_spam":1,"sentiment":"negative"}
+
+Збережено Тональність: negative | Збережено Спам: 1
+-----------------
+Помилка пошти: SMTP Error: Could not authenticate.
+Час: 14:12:12
+Текст: fghdhjgj
+Помилка cURL: Немає
+Відповідь від Python: {"is_spam":1,"sentiment":"negative"}
+
+Збережено Тональність: negative | Збережено Спам: 1
+-----------------
+Час: 14:15:37
+Текст: ыпапорпа
+Помилка cURL: Немає
+Відповідь від Python: {"is_spam":1,"sentiment":"negative"}
+
+Збережено Тональність: negative | Збережено Спам: 1
+-----------------

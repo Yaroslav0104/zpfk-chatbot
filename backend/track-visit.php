@@ -23,7 +23,7 @@ $timeout_minutes = 30;
 
 try {
     // Шукаємо час останнього візиту з цього IP
-    $stmt = $pdo->prepare("SELECT visit_time FROM visits WHERE ip_address = ? ORDER BY visit_time DESC LIMIT 1");
+    $stmt = $pdo->prepare("SELECT visit_date FROM visits WHERE ip_address = ? ORDER BY visit_date DESC LIMIT 1");
     $stmt->execute([$ip]);
     $last_visit = $stmt->fetchColumn();
 
@@ -53,7 +53,7 @@ try {
 
     // 3. Записуємо новий візит, якщо настав новий день або закінчився тайм-аут
     if ($should_insert) {
-        $insert_stmt = $pdo->prepare("INSERT INTO visits (ip_address, visit_time) VALUES (?, NOW())");
+        $insert_stmt = $pdo->prepare("INSERT INTO visits (ip_address, visit_date) VALUES (?, NOW())");
         $insert_stmt->execute([$ip]);
         
         echo json_encode(["success" => true, "message" => "Візит успішно зафіксовано"]);

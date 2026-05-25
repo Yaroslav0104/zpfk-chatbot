@@ -21,23 +21,10 @@ if (isset($data->id) && isset($data->sentiment)) {
         $stmtUpdate = $pdo->prepare("UPDATE complaints SET sentiment = ? WHERE id = ?");
         $stmtUpdate->execute([$data->sentiment, $data->id]);
         
-        // 2. ЗБЕРІГАЄМО АБО ОНОВЛЮЄМО ДАНІ ДЛЯ НАВЧАННЯ ШІ
+        // 2. ЗБЕРІГАЄМО ТЕКСТ І ЦИФРУ ДЛЯ НАВЧАННЯ ШІ (якщо вони передані)
         if (!empty($data->text) && isset($data->correct_label)) {
-            
-            // Перевіряємо, чи є вже такий текст у базі для ШІ
-            $stmtCheck = $pdo->prepare("SELECT id FROM ai_corrections WHERE text = ?");
-            $stmtCheck->execute([$data->text]);
-            $existingRow = $stmtCheck->fetch();
-
-            if ($existingRow) {
-                // Якщо текст вже є, просто оновлюємо мітку на актуальну
-                $stmtUpdateAI = $pdo->prepare("UPDATE ai_corrections SET correct_label = ? WHERE id = ?");
-                $stmtUpdateAI->execute([$data->correct_label, $existingRow['id']]);
-            } else {
-                // Якщо тексту немає, створюємо новий запис
-                $stmtInsert = $pdo->prepare("INSERT INTO ai_corrections (text, correct_label) VALUES (?, ?)");
-                $stmtInsert->execute([$data->text, $data->correct_label]);
-            }
+            $stmtInsert = $pdo->prepare("INSERT INTO ai_corrections (text, correct_label) VALUES (?, ?)");
+            $stmtInsert->execute([$data->text, $data->correct_label]);
         }
         
         echo json_encode(["success" => true]);
