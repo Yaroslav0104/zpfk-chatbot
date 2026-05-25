@@ -706,10 +706,10 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
                                     MenuProps={dropdownMenuProps} 
                                     sx={{ minWidth: 130, borderRadius: 2, ...getStatusStyle(item.status, isDarkMode) }}
                                   >
-                                    <MenuItem value="new">Нове</MenuItem>
-                                    <MenuItem value="in_progress">В роботі</MenuItem>
-                                    <MenuItem value="resolved">Виконано</MenuItem>
-                                    <MenuItem value="rejected">Відхилено</MenuItem>
+                                    <MenuItem value="new">Нове 🆕</MenuItem>
+                                    <MenuItem value="in_progress">В роботі ⚙️</MenuItem>
+                                    <MenuItem value="resolved">Виконано ✅</MenuItem>
+                                    <MenuItem value="rejected">Відхилено ❌</MenuItem>
                                     <MenuItem value="archived" sx={{ borderTop: '1px solid rgba(0,0,0,0.1)', mt: 1, pt: 1 }}>
                                       📦 В архів
                                     </MenuItem>
