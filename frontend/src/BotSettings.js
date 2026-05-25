@@ -13,7 +13,8 @@ const API_URL = window.location.hostname === "localhost"
   ? "http://localhost/backend" 
   : "/backend";
 
-export default function BotSettings({ isDarkMode, setSnackbar }) {
+// 🔴 ЗМІНА ТУТ: Приймаємо showToast замість setSnackbar
+export default function BotSettings({ isDarkMode, showToast }) {
   const [botTexts, setBotTexts] = useState([]); 
   const [editingItem, setEditingItem] = useState(null);
   
@@ -62,7 +63,8 @@ export default function BotSettings({ isDarkMode, setSnackbar }) {
 
       setBotTexts(allAvailableTexts);
     } catch (err) {
-      setSnackbar({ open: true, message: "Помилка завантаження текстів", type: "error" });
+      // 🔴 ЗМІНА ТУТ
+      showToast('error', 'Помилка завантаження текстів');
     }
     if (!silent) setLoading(false);
   };
@@ -91,14 +93,17 @@ export default function BotSettings({ isDarkMode, setSnackbar }) {
       const result = await res.json();
       
       if (result.success) {
-        setSnackbar({ open: true, message: "Текст успішно оновлено!", type: "success" });
+        // 🔴 ЗМІНА ТУТ
+        showToast('success', 'Текст успішно оновлено!');
         setEditingItem(null); 
         fetchTexts(true); 
       } else {
-        setSnackbar({ open: true, message: "Помилка: " + result.error, type: "error" });
+        // 🔴 ЗМІНА ТУТ (Додали детальну причину помилки)
+        showToast('error', 'Помилка збереження', result.error);
       }
     } catch (err) {
-      setSnackbar({ open: true, message: "Помилка з'єднання", type: "error" });
+      // 🔴 ЗМІНА ТУТ
+      showToast('error', "Помилка з'єднання з сервером");
     }
   };
 
@@ -153,7 +158,6 @@ export default function BotSettings({ isDarkMode, setSnackbar }) {
     return <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}><CircularProgress sx={{ color: "#38bdf8" }} /></Box>;
   }
 
-  // Залишаємо мінімальні кольори для інпутів (оскільки Material-UI інпути краще стилізувати через sx)
   const inputBg = isDarkMode ? '#0f172a' : '#f8fafc';
   const inputTextColor = isDarkMode ? '#f1f5f9' : '#0f172a';
   const borderColor = isDarkMode ? '#334155' : '#e2e8f0';

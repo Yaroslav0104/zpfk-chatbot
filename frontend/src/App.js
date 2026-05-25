@@ -16,7 +16,9 @@ import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close'; 
 import MoveToInboxIcon from '@mui/icons-material/MoveToInbox';
 
-const API_URL = "http://localhost/backend"; //const API_URL = "/backend";//
+const API_URL = window.location.hostname === "localhost" 
+  ? "http://localhost/backend" 
+  : "/backend";
 
 function App() {
   const [messages, setMessages] = useState([]);
@@ -80,28 +82,22 @@ function App() {
     }
   }, [showAdminDashboard]);
 
-
-  // === ТРЕКІНГ ВІДВІДУВАНЬ (Із захистом від оновлення F5) ===
+  // === ТРЕКІНГ ВІДВІДУВАНЬ ===
   useEffect(() => {
-    // Адмінів не рахуємо в статистику
     if (!isAdmin) {
-      // Перевіряємо, чи є мітка поточної сесії
       const isVisited = sessionStorage.getItem('zpfk_session_active');
 
       if (!isVisited) {
-        // Якщо мітки немає (людина щойно відкрила вкладку) — фіксуємо візит
         fetch(`${API_URL}/track-visit.php`, { method: "POST" })
           .then(res => res.json())
           .then(data => {
              if (data.success) {
-               // Ставимо мітку, яка зникне ТІЛЬКИ при повному закритті вкладки
                sessionStorage.setItem('zpfk_session_active', 'true');
                console.log("Новий візит зараховано!");
              }
           })
           .catch(err => console.error("Помилка запису відвідування:", err));
       } else {
-        // Якщо мітка є — це просто F5, нічого на сервер не відправляємо
         console.log("Оновлення сторінки: візит проігноровано.");
       }
     }
@@ -119,8 +115,28 @@ function App() {
     });
   };
 
+  // === УНІВЕРСАЛЬНА ЛОГІКА ТОСТЕРА ===
+  // === УНІВЕРСАЛЬНА ЛОГІКА ТОСТЕРА З АНІМАЦІЄЮ ===
+  const [toast, setToast] = useState({ open: false, closing: false, type: '', message: '', details: '' });
+
+  // Плавне закриття
+  const closeToast = () => {
+    setToast(prev => ({ ...prev, closing: true })); // Запускаємо CSS-анімацію
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, open: false, closing: false })); // Видаляємо з DOM через 400мс
+    }, 400); 
+  };
+
+  const showToast = (type, message, details = '') => {
+    setToast({ open: true, closing: false, type, message, details });
+    setTimeout(() => {
+      closeToast(); // Викликаємо плавне закриття через 5 секунд
+    }, 5000); 
+  };
+
+  // === АВТОРИЗАЦІЯ БЕЗ ALERT ===
   const handleLogin = async () => {
-    if (!loginUsername || !loginPassword) return alert("Введіть логін та пароль");
+    if (!loginUsername || !loginPassword) return showToast('error', 'Введіть логін та пароль');
 
     try {
       const response = await fetch(`${API_URL}/login.php`, {
@@ -142,11 +158,13 @@ function App() {
         setLoginPassword("");
         setIsSidebarOpen(false); 
         setIsMobileMenuOpen(false);
+        
+        showToast('success', 'Вхід виконано успішно!');
       } else {
-        alert(result.error);
+        showToast('error', 'Помилка входу', result.error);
       }
     } catch (error) {
-      alert("Помилка з'єднання з сервером.");
+      showToast('error', 'Помилка з\'єднання з сервером');
     }
   };
 
@@ -181,8 +199,9 @@ function App() {
     }
   };
 
+  // === ВІДПРАВКА СКАРГИ БЕЗ ALERT ===
   const handleComplaintSubmit = async () => {
-    if (!complaintData.message.trim()) return alert("Будь ласка, опишіть проблему.");
+    if (!complaintData.message.trim()) return showToast('error', 'Будь ласка, опишіть проблему.');
     setIsSending(true);
     const formData = new FormData();
     Object.keys(complaintData).forEach(key => formData.append(key, complaintData[key]));
@@ -190,13 +209,21 @@ function App() {
     try {
       const response = await fetch(`${API_URL}/create-complaint.php`, { method: 'POST', body: formData });
       const result = await response.json();
+      
       if (result.success) {
-        alert(`Звернення ${result.tracking_code} відправлено!`);
+        // Передаємо JSX для красивого зеленого виділення
+        showToast('success', <>Звернення <span className="text-green">{result.tracking_code}</span> відправлено</>);
+        
         setShowComplaintForm(false);
         setShowPersonalFields(false);
         setComplaintData({ full_name: "", student_group: "", appeal_type: "complaint", category: "Навчальний процес", urgency: "medium", message: "", is_anonymous: 1, contact_type: "none", contact_value: "" });
+      } else {
+        // Передаємо JSX для червоного виділення "не"
+        showToast('error', <>Звернення <span className="text-red">не</span> відправлено</>, result.error || 'Невідома помилка сервера');
       }
-    } catch (error) { alert('Помилка з\'єднання.'); } 
+    } catch (error) { 
+      showToast('error', 'Помилка з\'єднання з сервером'); 
+    } 
     finally { setIsSending(false); }
   };
 
@@ -380,6 +407,34 @@ function App() {
                 </button>
               </div>
             </Box>
+          </div>
+        </div>
+      )}
+
+      {/* === УНІВЕРСАЛЬНЕ КАСТОМНЕ СПОВІЩЕННЯ (TOAST) === */}
+      {/* === УНІВЕРСАЛЬНЕ КАСТОМНЕ СПОВІЩЕННЯ (TOAST) === */}
+      {toast.open && (
+        <div className="custom-toast-overlay">
+          {/* Додаємо клас closing, якщо тост закривається */}
+          <div className={`custom-toast ${toast.closing ? 'closing' : ''}`} data-type={toast.type}>
+            <div className="toast-content">
+              <span className="toast-title">
+                {toast.type === 'success' ? 'Успішно' : 'Помилка'}
+              </span>
+              <p className="toast-message">
+                {toast.message}
+                {toast.details && (
+                  <>
+                    <br/>
+                    <span className="toast-details">{toast.details}</span>
+                  </>
+                )}
+              </p>
+            </div>
+            {/* Викликаємо функцію плавного закриття по кліку */}
+            <button className="toast-close-btn" onClick={closeToast}>
+              <CloseIcon fontSize="small" />
+            </button>
           </div>
         </div>
       )}

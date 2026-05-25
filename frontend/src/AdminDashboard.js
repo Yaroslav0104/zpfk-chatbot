@@ -3,7 +3,7 @@ import './AdminDashboard.css';
 import {
   Box, Typography, Grid, Paper, Button, AppBar, Toolbar, IconButton, 
   Table, TableBody, TableCell, TableHead, TableRow, 
-  Select, MenuItem, Snackbar, Alert, CircularProgress, TextField, Divider, Card, CardContent
+  Select, MenuItem, CircularProgress, TextField, Divider, Card, CardContent
 } from "@mui/material";
 
 // === ІКОНКИ ===
@@ -26,6 +26,7 @@ import DarkModeIcon from '@mui/icons-material/DarkMode';
 import GroupIcon from '@mui/icons-material/Group';
 import DescriptionIcon from '@mui/icons-material/Description';
 import TableViewIcon from '@mui/icons-material/TableView';
+import CloseIcon from '@mui/icons-material/Close';
 
 // === НОВА БІБЛІОТЕКА ГРАФІКІВ ===
 import Chart from "react-apexcharts";
@@ -36,7 +37,9 @@ import { Document, Packer, Paragraph, TextRun, Table as WordTable, TableRow as W
 import { saveAs } from "file-saver";
 import * as XLSX from "xlsx";
 
-const API_URL = "http://localhost/backend"; //const API_URL = "/backend";//
+const API_URL = window.location.hostname === "localhost" 
+  ? "http://localhost/backend" 
+  : "/backend";
 
 const PIE_COLORS = ['#38bdf8', '#fbbf24', '#4ade80', '#f87171', '#c084fc', '#f472b6'];
 
@@ -92,7 +95,6 @@ const UrgencyBadge = ({ urgency }) => {
   );
 };
 
-// === КОМПОНЕНТИ ІНТЕРФЕЙСУ ===
 function StatCard({ title, value, color, icon, onClick }) {
   return (
     <Card onClick={onClick} className="stat-card" sx={{ borderLeft: `4px solid ${color}`, cursor: onClick ? 'pointer' : 'default' }}>
@@ -137,9 +139,21 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState("desc");
   const [loading, setLoading] = useState(true);
-  const [snackbar, setSnackbar] = useState({ open: false, message: "", type: "success" });
   const [dailyVisitors, setDailyVisitors] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // === УНІВЕРСАЛЬНА ЛОГІКА ТОСТЕРА ===
+  const [toast, setToast] = useState({ open: false, closing: false, type: '', message: '', details: '' });
+
+  const closeToast = () => {
+    setToast(prev => ({ ...prev, closing: true }));
+    setTimeout(() => { setToast(prev => ({ ...prev, open: false, closing: false })); }, 400); 
+  };
+
+  const showToast = (type, message, details = '') => {
+    setToast({ open: true, closing: false, type, message, details });
+    setTimeout(() => { closeToast(); }, 5000); 
+  };
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem("appTheme");
@@ -160,7 +174,9 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
         const jsonData = await res.json();
         setComplaints(Array.isArray(jsonData) ? jsonData : []);
       }
-    } catch (err) { setSnackbar({ open: true, message: "Помилка завантаження скарг", type: "error" }); } 
+    } catch (err) { 
+      showToast('error', 'Помилка завантаження скарг', err.message); 
+    } 
 
     try {
       const visitsRes = await fetch(`${API_URL}/get-visits.php?t=${new Date().getTime()}`);
@@ -171,11 +187,9 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
 
   useEffect(() => { fetchData(); }, []);
 
-  // Фільтрація даних для відображення в таблиці та експорту
   const displayedComplaints = useMemo(() => {
     let result = [...complaints];
     
-    // ФІЛЬТРАЦІЯ СПАМУ ДЛЯ РІЗНИХ ВКЛАДОК
     if (view === "table") {
         result = result.filter(c => c.status !== "archived" && c.status !== "spam" && Number(c.is_spam) !== 1);
     } else if (view === "archive") {
@@ -201,8 +215,6 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
     return result;
   }, [complaints, view, tableFilter, search, sortOrder]);
 
-
-  // === ВІДНОВЛЕНИЙ ЕКСПОРТ (Word / Excel) ===
   const exportToWord = () => {
     const doc = new Document({
       sections: [{
@@ -304,48 +316,9 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
     XLSX.utils.book_append_sheet(workbook, worksheet, "Звіти ZPFK");
     
     XLSX.writeFile(workbook, `Report_ZPFK_${new Date().toLocaleDateString()}.xlsx`);
-    setSnackbar({ open: true, message: "Звіт Excel згенеровано!", type: "success" });
+    showToast('success', 'Звіт Excel згенеровано!');
   };
 
-  // Розділяємо функції, щоб оновлювати їх з різною частотою
-  const fetchComplaints = async () => {
-    try {
-      const res = await fetch(`${API_URL}/get-complaints.php`);
-      if (res.ok) {
-        const jsonData = await res.json();
-        setComplaints(Array.isArray(jsonData) ? jsonData : []);
-      }
-    } catch (err) { console.error("Помилка оновлення скарг:", err); }
-  };
-
-  const fetchVisits = async () => {
-    try {
-      const visitsRes = await fetch(`${API_URL}/get-visits.php?t=${new Date().getTime()}`);
-      if (visitsRes.ok) setDailyVisitors((await visitsRes.json()).today_visits || 0);
-    } catch (err) { console.error("Помилка відвідувачів:", err); }
-  };
-
-  useEffect(() => {
-    // 1. Перше завантаження при відкритті дашборду
-    const loadInitialData = async () => {
-      setLoading(true);
-      await fetchComplaints();
-      await fetchVisits();
-      setLoading(false);
-    };
-    loadInitialData();
-
-    // 2. АВТОМАТИЧНЕ ОНОВЛЕННЯ В РЕАЛЬНОМУ ЧАСІ
-    const visitsTimer = setInterval(fetchVisits, 5000); // Оновлюємо відвідувачів кожні 5 секунд
-    const complaintsTimer = setInterval(fetchComplaints, 15000); // Перевіряємо нові скарги кожні 15 секунд
-
-    // 3. Зупиняємо таймери, якщо адмін закрив дашборд
-    return () => {
-      clearInterval(visitsTimer);
-      clearInterval(complaintsTimer);
-    };
-  }, []);
-  
   const handleStatusChange = async (id, newStatus) => {
     try {
       const response = await fetch(`${API_URL}/update-status.php`, {
@@ -358,25 +331,19 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
       const data = await response.json();
       
       if (data.success) {
-          // РОЗУМНЕ ОНОВЛЕННЯ СТЕЙТУ У REACT
           setComplaints(prev => prev.map(c => {
             if (c.id === id) {
-              if (newStatus === 'spam') {
-                return { ...c, status: newStatus, is_spam: 1 }; // Примусово вішаємо мітку спаму
-              } else {
-                return { ...c, status: newStatus, is_spam: 0 }; // Знімаємо мітку спаму
-              }
+              if (newStatus === 'spam') return { ...c, status: newStatus, is_spam: 1 };
+              else return { ...c, status: newStatus, is_spam: 0 };
             }
             return c;
           }));
-          
-          setSnackbar({ open: true, message: "Статус успішно оновлено", type: "success" });
+          showToast('success', 'Статус успішно оновлено');
       } else {
           throw new Error(data.error || "Невідома помилка оновлення статусу");
       }
     } catch (error) { 
-      console.error("Помилка зміни статусу:", error);
-      setSnackbar({ open: true, message: "Помилка оновлення статусу", type: "error" }); 
+      showToast('error', 'Помилка оновлення статусу'); 
     }
   };
 
@@ -395,13 +362,12 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
       
       if (data.success) {
           setComplaints(prev => prev.filter(c => c.id !== id));
-          setSnackbar({ open: true, message: "Видалено успішно", type: "success" });
+          showToast('success', 'Видалено успішно');
       } else {
           throw new Error(data.error || "Невідома помилка");
       }
     } catch (error) { 
-      console.error("Деталі помилки видалення:", error);
-      setSnackbar({ open: true, message: "Помилка видалення. Див. консоль (F12)", type: "error" }); 
+      showToast('error', 'Помилка видалення. Див. консоль (F12)'); 
     }
   };
 
@@ -413,7 +379,6 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
       const response = await fetch(`${API_URL}/save-correction.php`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // ТЕПЕР МИ ПЕРЕДАЄМО ЩЕ Й ID ТА СЛОВО ТОНАЛЬНОСТІ (positive/neutral/negative)
         body: JSON.stringify({ id: id, text: message, correct_label: correct_label, sentiment: correctSentimentWord })
       });
 
@@ -421,22 +386,18 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
       const data = await response.json();
 
       if (data.success) {
-        // МАГІЯ ТУТ: Миттєво оновлюємо бейджик у таблиці!
         setComplaints(prev => prev.map(c => 
           c.id === id ? { ...c, sentiment: correctSentimentWord } : c
         ));
-        
-        setSnackbar({ open: true, message: "🤖 Дякуємо! Тональність оновлено, ШІ запам'ятав фразу.", type: "success" });
+        showToast('success', "🤖 Дякуємо! Тональність оновлено, ШІ запам'ятав фразу.");
       } else {
         throw new Error(data.error);
       }
     } catch (error) {
-      console.error("❌ ПОМИЛКА під час відправки:", error);
-      setSnackbar({ open: true, message: "Помилка збереження виправлення", type: "error" });
+      showToast('error', 'Помилка збереження виправлення');
     }
   };
 
-  // === ОБРОБКА ДАНИХ ДЛЯ АНАЛІТИКИ ===
   const stats = useMemo(() => {
     const active = complaints.filter(c => c.status !== "archived" && c.status !== "spam" && Number(c.is_spam) !== 1);
     return {
@@ -487,7 +448,6 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
     };
   }, [complaints]);
 
-  // НОВІ ДАНІ: Графік терміновості
   const urgencyData = useMemo(() => {
     const active = complaints.filter(c => c.status !== "archived" && c.status !== "spam" && Number(c.is_spam) !== 1);
     const map = { low: 0, medium: 0, high: 0 };
@@ -520,7 +480,6 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
     return { series: [{ name: 'Кількість', data: data.map(d => d.value) }], categories: data.map(d => d.name) };
   }, [complaints]);
 
-  // === КОНФІГУРАЦІЯ APEXCHARTS ===
   const chartThemeColor = isDarkMode ? '#e2e8f0' : '#0f172a';
   const defaultPieOptions = {
     chart: { background: 'transparent', toolbar: { show: false } },
@@ -536,7 +495,6 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
   const apexAppealOptions = { ...defaultPieOptions, labels: appealTypeData.labels, colors: ['#f87171', '#4ade80', '#38bdf8'] };
   const apexCategoryOptions = { ...defaultPieOptions, labels: categoryData.labels, colors: PIE_COLORS, tooltip: { y: { formatter: (val) => `${val} звернень` } } };
   const apexSentimentOptions = { ...defaultPieOptions, labels: sentimentData.labels, colors: sentimentData.colors };
-  // НОВІ ОПЦІЇ ДЛЯ ТЕРМІНОВОСТІ
   const apexUrgencyOptions = { ...defaultPieOptions, labels: urgencyData.labels, colors: urgencyData.colors };
 
   const apexBarOptions = {
@@ -630,7 +588,6 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
                       </Paper>
                     </Grid>
                     
-                    {/* НОВИЙ ГРАФІК ТЕРМІНОВОСТІ */}
                     <Grid item xs={12} md={6} lg={4}> 
                       <Paper className="glass-panel">
                         <Typography className="panel-title">Терміновість</Typography>
@@ -651,7 +608,7 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
               )}
 
               {view === "bot_settings" && (
-                <BotSettings isDarkMode={isDarkMode} setSnackbar={setSnackbar} />
+                <BotSettings isDarkMode={isDarkMode} showToast={showToast} />
               )}
 
               {(view === "table" || view === "archive" || view === "spam") && (
@@ -779,7 +736,31 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
           )}
         </Box>
       </Box>
-      <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({ ...snackbar, open: false })}><Alert severity={snackbar.type} variant="filled">{snackbar.message}</Alert></Snackbar>
+      
+      {/* === УНІВЕРСАЛЬНЕ КАСТОМНЕ СПОВІЩЕННЯ (TOAST) === */}
+      {toast.open && (
+        <div className="custom-toast-overlay">
+          <div className={`custom-toast ${toast.closing ? 'closing' : ''}`} data-type={toast.type}>
+            <div className="toast-content">
+              <span className="toast-title">
+                {toast.type === 'success' ? 'Успішно' : 'Помилка'}
+              </span>
+              <p className="toast-message">
+                {toast.message}
+                {toast.details && (
+                  <>
+                    <br/>
+                    <span className="toast-details">{toast.details}</span>
+                  </>
+                )}
+              </p>
+            </div>
+            <button className="toast-close-btn" onClick={closeToast}>
+              <CloseIcon fontSize="small" />
+            </button>
+          </div>
+        </div>
+      )}
     </Box>
   );
 }
