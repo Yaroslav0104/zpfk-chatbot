@@ -15,10 +15,11 @@ $data = json_decode(file_get_contents("php://input"));
 
 if (!empty($data->step_id) && isset($data->message)) {
     try {
-        // УВАГА: Перевір, чи твоя таблиця дійсно називається bot_texts
-        // Ми використовуємо "id" замість "text_id"
-        $sql = "INSERT INTO bot_texts (id, message) VALUES (?, ?) 
-                ON DUPLICATE KEY UPDATE message = ?";
+        $sql = "INSERT INTO bot_texts (id, message, updated_at) 
+                VALUES (?, ?, NOW()) 
+                ON DUPLICATE KEY UPDATE 
+                message = ?, 
+                updated_at = NOW()";
                 
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$data->step_id, $data->message, $data->message]);
@@ -26,7 +27,6 @@ if (!empty($data->step_id) && isset($data->message)) {
         echo json_encode(["success" => true]);
     } catch (PDOException $e) {
         http_response_code(500);
-        // Тепер PHP повертатиме деталі, якщо щось піде не так
         echo json_encode(["success" => false, "error" => $e->getMessage()]);
     }
 } else {

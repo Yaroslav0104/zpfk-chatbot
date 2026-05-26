@@ -6,7 +6,7 @@ header('Content-Type: application/json; charset=utf-8');
 $host = 'localhost';
 $dbname = 'chatbot_system';
 $username = 'root';
-$password = '1111'; // або твій пароль
+$password = '';
 
 try {
     $pdo = new PDO(

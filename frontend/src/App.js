@@ -15,10 +15,7 @@ import DarkModeIcon from '@mui/icons-material/DarkMode';
 import MenuIcon from '@mui/icons-material/Menu'; 
 import CloseIcon from '@mui/icons-material/Close'; 
 import MoveToInboxIcon from '@mui/icons-material/MoveToInbox';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack'; // ДОДАНО ІМПОРТ НОВОЇ ІКОНКИ
-
-// Замість старої логіки з localhost, вказуємо пряму IP-адресу твого комп'ютера.
-// УВАГА: Заміни 192.168.X.X на свої реальні цифри (IPv4)!
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'; 
 
 const API_URL = "http://192.168.1.23/backend";
 
@@ -84,7 +81,6 @@ function App() {
     }
   }, [showAdminDashboard]);
 
-  // === ТРЕКІНГ ВІДВІДУВАНЬ ===
   useEffect(() => {
     if (!isAdmin) {
       const isVisited = sessionStorage.getItem('zpfk_session_active');
@@ -117,25 +113,23 @@ function App() {
     });
   };
 
-  // === УНІВЕРСАЛЬНА ЛОГІКА ТОСТЕРА З АНІМАЦІЄЮ ===
   const [toast, setToast] = useState({ open: false, closing: false, type: '', message: '', details: '' });
 
   // Плавне закриття
   const closeToast = () => {
-    setToast(prev => ({ ...prev, closing: true })); // Запускаємо CSS-анімацію
+    setToast(prev => ({ ...prev, closing: true })); 
     setTimeout(() => {
-      setToast(prev => ({ ...prev, open: false, closing: false })); // Видаляємо з DOM через 400мс
+      setToast(prev => ({ ...prev, open: false, closing: false })); 
     }, 400); 
   };
 
   const showToast = (type, message, details = '') => {
     setToast({ open: true, closing: false, type, message, details });
     setTimeout(() => {
-      closeToast(); // Викликаємо плавне закриття через 5 секунд
+      closeToast();
     }, 5000); 
   };
 
-  // === АВТОРИЗАЦІЯ БЕЗ ALERT ===
   const handleLogin = async () => {
     if (!loginUsername || !loginPassword) return showToast('error', 'Введіть логін та пароль');
 
@@ -200,7 +194,6 @@ function App() {
     }
   };
 
-  // === ВІДПРАВКА СКАРГИ БЕЗ ALERT ===
   const handleComplaintSubmit = async () => {
     if (!complaintData.message.trim()) return showToast('error', 'Будь ласка, опишіть проблему.');
     setIsSending(true);
@@ -212,14 +205,14 @@ function App() {
       const result = await response.json();
       
       if (result.success) {
-        // Передаємо JSX для красивого зеленого виділення
+
         showToast('success', <>Звернення <span className="text-green">успішно</span> відправлено</>);
         
         setShowComplaintForm(false);
         setShowPersonalFields(false);
         setComplaintData({ full_name: "", student_group: "", appeal_type: "complaint", category: "Навчальний процес", urgency: "medium", message: "", is_anonymous: 1, contact_type: "none", contact_value: "" });
       } else {
-        // Передаємо JSX для червоного виділення "не"
+
         showToast('error', <>Звернення <span className="text-red">не</span> відправлено</>, result.error || 'Невідома помилка сервера');
       }
     } catch (error) { 
@@ -268,7 +261,6 @@ function App() {
             <Button className="btn-login-sidebar" startIcon={<LoginIcon />} fullWidth onClick={() => { setIsSidebarOpen(true); setIsMobileMenuOpen(false); }}>ВХІД В АКАУНТ</Button>
           )}
 
-          {/* === НОВА КНОПКА ПОВЕРНЕННЯ НА САЙТ === */}
           <Button 
             component="a" 
             href="http://nvpet.novograd.info" 
@@ -310,7 +302,6 @@ function App() {
         <Button variant="contained" fullWidth className="btn-login-submit" onClick={handleLogin}>УВІЙТИ</Button>
       </Drawer>
 
-      {/* Скринька довіри */}
       {showComplaintForm && (
         <div className="bot-modal-overlay">
           <div className="bot-modal-content">
@@ -423,10 +414,8 @@ function App() {
         </div>
       )}
 
-      {/* === УНІВЕРСАЛЬНЕ КАСТОМНЕ СПОВІЩЕННЯ (TOAST) === */}
       {toast.open && (
         <div className="custom-toast-overlay">
-          {/* Додаємо клас closing, якщо тост закривається */}
           <div className={`custom-toast ${toast.closing ? 'closing' : ''}`} data-type={toast.type}>
             <div className="toast-content">
               <span className="toast-title">
@@ -442,7 +431,6 @@ function App() {
                 )}
               </p>
             </div>
-            {/* Викликаємо функцію плавного закриття по кліку */}
             <button className="toast-close-btn" onClick={closeToast}>
               <CloseIcon fontSize="small" />
             </button>

@@ -5,16 +5,11 @@ import {
   Chip, useMediaQuery, useTheme, Divider
 } from "@mui/material";
 
-// Підключаємо файл текстів та наш новий CSS
 import defaultSteps from './data/steps.js'; 
 import './BotSettings.css'; 
 
-// Замість старої логіки з localhost, вказуємо пряму IP-адресу твого комп'ютера.
-// УВАГА: Заміни 192.168.X.X на свої реальні цифри (IPv4)!
-
 const API_URL = "http://192.168.1.23/backend";
 
-// 🔴 ЗМІНА ТУТ: Приймаємо showToast замість setSnackbar
 export default function BotSettings({ isDarkMode, showToast }) {
   const [botTexts, setBotTexts] = useState([]); 
   const [editingItem, setEditingItem] = useState(null);
@@ -99,11 +94,9 @@ export default function BotSettings({ isDarkMode, showToast }) {
         setEditingItem(null); 
         fetchTexts(true); 
       } else {
-        // 🔴 ЗМІНА ТУТ (Додали детальну причину помилки)
         showToast('error', 'Помилка збереження', result.error);
       }
     } catch (err) {
-      // 🔴 ЗМІНА ТУТ
       showToast('error', "Помилка з'єднання з сервером");
     }
   };
@@ -144,7 +137,6 @@ export default function BotSettings({ isDarkMode, showToast }) {
   };
 
   const renderStatusChip = (textItem) => {
-    // 1. Якщо текст не змінювався - статус "ОРИГІНАЛ"
     if (!textItem.isModified) {
       return (
         <Chip 
@@ -155,7 +147,6 @@ export default function BotSettings({ isDarkMode, showToast }) {
       );
     }
     
-    // 2. Якщо зміни були менше 24 годин тому - статус "ЩОЙНО ЗМІНЕНО"
     if (isRecentlyUpdated(textItem.updated_at)) {
       return (
         <Chip 
@@ -166,7 +157,6 @@ export default function BotSettings({ isDarkMode, showToast }) {
       );
     }
 
-    // 3. Якщо зміни були більше 24 годин тому - тепер це "ЗМІНЕНО"
     return (
       <Chip 
         label="ЗМІНЕНО" 
@@ -176,7 +166,6 @@ export default function BotSettings({ isDarkMode, showToast }) {
     );
   };
 
-// Допоміжна константа для стилів, щоб не дублювати код (винеси це окремо або просто скопіюй сюди)
 const chipStyles = { borderRadius: 1.5, fontWeight: 600, fontSize: '11px', letterSpacing: '0.5px' };
 
   const inputBg = isDarkMode ? '#0f172a' : '#f8fafc';
@@ -187,7 +176,6 @@ const chipStyles = { borderRadius: 1.5, fontWeight: 600, fontSize: '11px', lette
     <Box className="bot-settings-container">
       <div ref={topRef} style={{ position: 'absolute', top: 0 }} />
 
-      {/* ПАНЕЛЬ РЕДАГУВАННЯ */}
       {editingItem && (
         <Paper elevation={0} className={`editor-panel ${themeMode}`}>
           <Typography variant="subtitle2" className="editor-title">
@@ -243,7 +231,6 @@ const chipStyles = { borderRadius: 1.5, fontWeight: 600, fontSize: '11px', lette
       )}
 
       {isMobile ? (
-        // МОБІЛЬНИЙ ВИГЛЯД
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {botTexts.map((textItem) => (
             <Paper key={textItem.id} elevation={0} className={`mobile-step-card ${themeMode}`}>
@@ -261,7 +248,6 @@ const chipStyles = { borderRadius: 1.5, fontWeight: 600, fontSize: '11px', lette
           ))}
         </Box>
       ) : (
-        // ДЕСКТОПНИЙ ВИГЛЯД
         <Box className={`desktop-table-container ${themeMode}`}>
           <Table stickyHeader sx={{ minWidth: 800, tableLayout: 'fixed' }}>
             <TableHead>

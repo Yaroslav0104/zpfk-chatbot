@@ -1,10 +1,8 @@
 <?php
-// Обов'язкові заголовки CORS (дозволяють приймати Authorization токен)
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
-// Якщо браузер просто перевіряє з'єднання (OPTIONS), віддаємо статус 200 і закриваємо
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     http_response_code(200);
     exit(0);
@@ -13,12 +11,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 header("Content-Type: application/json; charset=UTF-8");
 require_once 'db.php';
 
-// Отримуємо ID від React
 $data = json_decode(file_get_contents("php://input"));
 
 if (!empty($data->id)) {
     try {
-        // Видаляємо звернення з бази
         $stmt = $pdo->prepare("DELETE FROM complaints WHERE id = ?");
         $stmt->execute([$data->id]);
         

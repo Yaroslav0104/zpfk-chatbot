@@ -1,12 +1,8 @@
-/* === BotSettings.css === */
-
-/* Головний контейнер налаштувань */
 .bot-settings-container {
   padding-bottom: 32px;
   position: relative;
 }
 
-/* === ПАНЕЛЬ РЕДАГУВАННЯ === */
 .editor-panel {
   padding: 24px;
   border-radius: 8px;
@@ -37,7 +33,6 @@
   font-weight: bold;
 }
 
-/* === МОБІЛЬНИЙ ВИГЛЯД (Картки) === */
 .mobile-step-card {
   padding: 16px;
   border-radius: 8px;
@@ -126,7 +121,6 @@
   line-height: 1.6;
 }
 
-/* === КНОПКИ === */
 .btn-edit-step {
   background-color: #3b82f6 !important;
   color: #ffffff !important;

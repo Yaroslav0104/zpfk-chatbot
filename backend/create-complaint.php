@@ -1,7 +1,4 @@
 <?php
-// =========================================================
-// 1. ПІДКЛЮЧЕННЯ PHPMAILER ТА НАЛАШТУВАННЯ CORS
-// =========================================================
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
@@ -16,9 +13,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     exit(0);
 }
 
-// =========================================================
-// 2. ОТРИМАННЯ ДАНИХ ВІД REACT
-// =========================================================
 $data = json_decode(file_get_contents("php://input"), true);
 if (empty($data)) {
     $data = $_POST;
@@ -29,18 +23,13 @@ if (empty($data)) {
     exit;
 }
 
-// =========================================================
-// 3. ПІДКЛЮЧЕННЯ ДО БД
-// =========================================================
 require_once 'db.php';
 
 try {
     $pdo->beginTransaction(); 
 
-    // 4. ГЕНЕРАЦІЯ УНІКАЛЬНОГО КОДУ ЗВЕРНЕННЯ
-    $tracking_code = 'ZPFK-' . strtoupper(substr(uniqid(), -6));
+    $tracking_code = strtoupper(substr(uniqid(), -6));
 
-    // 4.5 АНАЛІЗ ЧЕРЕЗ ШІ-СЕРВЕР (PYTHON)
     $ai_sentiment = 'neutral'; 
     $ai_is_spam = 0;            
     $text_to_analyze = $data['message'] ?? '';
@@ -76,7 +65,6 @@ try {
     $debug_info .= "Збережено Тональність: $ai_sentiment | Збережено Спам: $ai_is_spam\n-----------------\n";
     file_put_contents(__DIR__ . '/ai_log.txt', $debug_info, FILE_APPEND);
 
-    // 5. ЗАПИС У ТАБЛИЦЮ COMPLAINTS
     $sql = "INSERT INTO complaints (
         tracking_code, full_name, student_group, category, urgency, message, 
         is_anonymous, contact_type, contact_value, appeal_type, 
@@ -105,7 +93,6 @@ try {
 
     $complaint_id = $pdo->lastInsertId();
 
-    // 6. ЗАПИС У ТАБЛИЦЮ ІСТОРІЇ (complaint_history)
     $history_sql = "INSERT INTO complaint_history (complaint_id, action_description) VALUES (:complaint_id, :action_description)";
     $history_stmt = $pdo->prepare($history_sql);
     $history_stmt->execute([
@@ -115,10 +102,6 @@ try {
 
     $pdo->commit();
 
-    // =========================================================
-    // 7. ВІДПРАВКА СПОВІЩЕННЯ НА ПОШТУ АДМІНІСТРАТОРА (PHPMailer)
-    // =========================================================
-    // Твій Gmail, куди мають приходити всі листи
     $admin_email = 'kornijcuknazarij13@gmail.com'; 
     $subject = "Нове звернення в боті ZPFK";
     
@@ -146,18 +129,16 @@ try {
 
     try {
         $mail->isSMTP();
-        $mail->Host       = 'smtp.gmail.com'; // Сервер Gmail
+        $mail->Host       = 'smtp.gmail.com';
         $mail->SMTPAuth   = true;
         
-        // 🔴 ВПИШИ СВОЮ НОВУ ПОШТУ Gmail ЗАМІСТЬ 'твоя_пошта@gmail.com'
         $mail->Username   = 'zpfkbot@gmail.com'; 
-        $mail->Password   = 'rorxicgwujawwltv'; // Твій новий пароль додатка Gmail
+        $mail->Password   = 'rorxicgwujawwltv';
         
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS; // Захист для Gmail
-        $mail->Port       = 587;                            // Порт для Gmail
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port       = 587; 
         $mail->CharSet    = 'UTF-8';
 
-        // 🔴 ТУТ ТЕЖ ВПИШИ СВОЮ ПОШТУ Gmail
         $mail->setFrom('zpfkbot@gmail.com', 'ZPFK Bot'); 
         $mail->addAddress($admin_email); 
 
@@ -169,8 +150,7 @@ try {
     } catch (Exception $e) {
         file_put_contents(__DIR__ . '/ai_log.txt', "Помилка пошти: {$mail->ErrorInfo}\n", FILE_APPEND);
     }
-    // =========================================================
-
+    
     echo json_encode([
         "success" => true, 
         "message" => "Скаргу успішно створено!",

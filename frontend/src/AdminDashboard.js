@@ -6,7 +6,6 @@ import {
   Select, MenuItem, CircularProgress, TextField, Divider, Card, CardContent
 } from "@mui/material";
 
-// === ІКОНКИ ===
 import MenuIcon from "@mui/icons-material/Menu";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import ListIcon from "@mui/icons-material/List";
@@ -28,23 +27,18 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import TableViewIcon from '@mui/icons-material/TableView';
 import CloseIcon from '@mui/icons-material/Close';
 
-// === НОВА БІБЛІОТЕКА ГРАФІКІВ ===
 import Chart from "react-apexcharts";
 import BotSettings from './BotSettings'; 
 
-// === ЕКСПОРТ ===
 import { Document, Packer, Paragraph, TextRun, Table as WordTable, TableRow as WordRow, TableCell as WordCell, WidthType, AlignmentType, VerticalAlign, BorderStyle } from "docx";
 import { saveAs } from "file-saver";
 import * as XLSX from "xlsx";
 
-// Замість старої логіки з localhost, вказуємо пряму IP-адресу твого комп'ютера.
-// УВАГА: Заміни 192.168.X.X на свої реальні цифри (IPv4)!
 
 const API_URL = "http://192.168.1.23/backend";
 
 const PIE_COLORS = ['#38bdf8', '#fbbf24', '#4ade80', '#f87171', '#c084fc', '#f472b6'];
 
-// === СЛОВНИКИ ТА СТИЛІ ===
 const STATUS_LABELS = {
   new: "Нове",
   in_progress: "В роботі",
@@ -143,7 +137,6 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
   const [dailyVisitors, setDailyVisitors] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // === УНІВЕРСАЛЬНА ЛОГІКА ТОСТЕРА ===
   const [toast, setToast] = useState({ open: false, closing: false, type: '', message: '', details: '' });
 
   const closeToast = () => {
@@ -368,7 +361,7 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
           throw new Error(data.error || "Невідома помилка");
       }
     } catch (error) { 
-      showToast('error', 'Помилка видалення. Див. консоль (F12)'); 
+      showToast('error', 'Помилка видалення. Див. консоль для деталей.'); 
     }
   };
 
@@ -390,7 +383,7 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
         setComplaints(prev => prev.map(c => 
           c.id === id ? { ...c, sentiment: correctSentimentWord } : c
         ));
-        showToast('success', "🤖 Дякуємо! Тональність оновлено, ШІ запам'ятав фразу.");
+        showToast('success', "Готово! Тональність оновлено, ШІ запам'ятав фразу.");
       } else {
         throw new Error(data.error);
       }
@@ -740,7 +733,6 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
         </Box>
       </Box>
       
-      {/* === УНІВЕРСАЛЬНЕ КАСТОМНЕ СПОВІЩЕННЯ (TOAST) === */}
       {toast.open && (
         <div className="custom-toast-overlay">
           <div className={`custom-toast ${toast.closing ? 'closing' : ''}`} data-type={toast.type}>
