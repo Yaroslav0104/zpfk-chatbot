@@ -37,9 +37,10 @@ import { Document, Packer, Paragraph, TextRun, Table as WordTable, TableRow as W
 import { saveAs } from "file-saver";
 import * as XLSX from "xlsx";
 
-const API_URL = window.location.hostname === "localhost" 
-  ? "http://localhost/backend" 
-  : "/backend";
+// Замість старої логіки з localhost, вказуємо пряму IP-адресу твого комп'ютера.
+// УВАГА: Заміни 192.168.X.X на свої реальні цифри (IPv4)!
+
+const API_URL = "http://192.168.1.23/backend";
 
 const PIE_COLORS = ['#38bdf8', '#fbbf24', '#4ade80', '#f87171', '#c084fc', '#f472b6'];
 
@@ -630,6 +631,7 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
                        <Table className="custom-table" sx={{ minWidth: 900 }}>
                         <TableHead>
                           <TableRow>
+                            <TableCell sx={{ color: '#9ca3af' }}>ID</TableCell>
                             <TableCell sx={{ color: '#9ca3af' }}>Відправник</TableCell>
                             <TableCell sx={{ color: '#9ca3af' }}>Дата</TableCell>
                             <TableCell sx={{ color: '#9ca3af' }}>Тип, Категорія та Терміновість</TableCell>
@@ -644,6 +646,7 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
                           ) : (
                             displayedComplaints.map((item) => (
                               <TableRow key={item.id} className="table-row">
+                                <TableCell data-label="ID" sx={{ color: isDarkMode ? '#e2e8f0' : '#1e293b', fontWeight: 700 }}>{item.tracking_code}</TableCell>
                                 <TableCell data-label="Відправник">
                                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                     <span className="table-user-name">
@@ -743,7 +746,7 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
           <div className={`custom-toast ${toast.closing ? 'closing' : ''}`} data-type={toast.type}>
             <div className="toast-content">
               <span className="toast-title">
-                {toast.type === 'success' ? 'Успішно' : 'Помилка'}
+                {toast.type === 'success' ? 'Готово' : 'От халепа 😥'}
               </span>
               <p className="toast-message">
                 {toast.message}

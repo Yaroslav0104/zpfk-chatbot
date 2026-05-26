@@ -42,7 +42,7 @@ function ButtonGroup({ options, handleClick }) {
             transition: "all 0.3s ease",
           }}
         >
-          {isOpen ? "Сховати меню" : "Відкрити меню команд"}
+          {isOpen ? "Сховати меню" : "Меню опцій"}
         </Button>
       )}
 

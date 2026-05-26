@@ -34,7 +34,12 @@ body {
   display: flex; flex-direction: column; flex-shrink: 0;
   transition: all 0.3s ease;
   z-index: 9999 !important; /* Бокове меню поверх усього */
+  
+  /* Додано для скролу на малих екранах */
+  overflow-y: auto; 
+  -webkit-overflow-scrolling: touch;
 }
+
 .sidebar-brand { padding: 30px 20px; }
 .sidebar-brand-title { 
   font-weight: 800 !important; 
@@ -46,7 +51,8 @@ body {
 
 .sidebar-bottom-actions {
   margin-top: auto;
-  padding: 16px;
+  /* Збільшено відступ знизу для зручного натискання на iPhone 5 */
+  padding: 16px 16px 50px 16px; 
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -71,6 +77,35 @@ body {
 }
 .btn-login-sidebar:hover { background-color: rgba(255, 255, 255, 0.1) !important; color: #fff !important; }
 
+/* === КНОПКА ПОВЕРНЕННЯ НА САЙТ КОЛЕДЖУ === */
+.btn-back-college {
+  background-color: transparent !important;
+  color: #94a3b8 !important;
+  border: 1px dashed rgba(148, 163, 184, 0.4) !important;
+  border-radius: 12px !important;
+  padding: 12px !important;
+  font-weight: 600 !important;
+  text-decoration: none !important;
+  text-transform: uppercase !important;
+  font-size: 14px !important;
+  letter-spacing: 0.5px;
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease !important;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 5px;
+}
+
+.btn-back-college:hover {
+  color: #f8fafc !important;
+  border-color: #f8fafc !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  transform: translateY(-2px);
+}
+
 /* ЧАТ */
 .bot-content {
   flex: 1;
@@ -87,6 +122,13 @@ body {
 
 .bot-controls-box {
   padding: 0 16px 16px 16px;
+  /* Додано обмеження висоти та скрол для кнопок на малих екранах */
+  max-height: 35dvh; 
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.bot-controls-box::-webkit-scrollbar {
+  display: none; /* Ховаємо некрасивий повзунок скролу */
 }
 
 .bot-chat-area {
@@ -167,6 +209,10 @@ body {
 
 .light-theme .btn-login-sidebar { background-color: #f1f5f9 !important; color: #475569 !important; border: 1px solid rgba(0, 0, 0, 0.1) !important; }
 .light-theme .btn-login-sidebar:hover { background-color: #e2e8f0 !important; color: #0f172a !important; }
+
+/* === КНОПКА ПОВЕРНЕННЯ НА САЙТ (СВІТЛА ТЕМА) === */
+.light-theme .btn-back-college { color: #64748b !important; border-color: rgba(0, 0, 0, 0.15) !important; }
+.light-theme .btn-back-college:hover { color: #0f172a !important; border-color: #0f172a !important; background-color: rgba(0, 0, 0, 0.03) !important; }
 
 .light-theme .bot-content { background: #f8fafc; }
 .light-theme .bot-header-simple { border-bottom: 1px solid rgba(0,0,0,0.08); color: #0f172a; }

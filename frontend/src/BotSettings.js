@@ -9,9 +9,10 @@ import {
 import defaultSteps from './data/steps.js'; 
 import './BotSettings.css'; 
 
-const API_URL = window.location.hostname === "localhost" 
-  ? "http://localhost/backend" 
-  : "/backend";
+// Замість старої логіки з localhost, вказуємо пряму IP-адресу твого комп'ютера.
+// УВАГА: Заміни 192.168.X.X на свої реальні цифри (IPv4)!
+
+const API_URL = "http://192.168.1.23/backend";
 
 // 🔴 ЗМІНА ТУТ: Приймаємо showToast замість setSnackbar
 export default function BotSettings({ isDarkMode, showToast }) {
@@ -94,7 +95,7 @@ export default function BotSettings({ isDarkMode, showToast }) {
       
       if (result.success) {
         // 🔴 ЗМІНА ТУТ
-        showToast('success', 'Текст успішно оновлено!');
+        showToast('success', <>Звернення <span className="text-green">успішно</span> відправлено</>);
         setEditingItem(null); 
         fetchTexts(true); 
       } else {
@@ -143,20 +144,40 @@ export default function BotSettings({ isDarkMode, showToast }) {
   };
 
   const renderStatusChip = (textItem) => {
+    // 1. Якщо текст не змінювався - статус "ОРИГІНАЛ"
     if (!textItem.isModified) {
-      return <Chip label="ОРИГІНАЛ" sx={{ color: '#94a3b8', borderColor: 'rgba(148, 163, 184, 0.4)', borderRadius: 1.5, fontWeight: 600, fontSize: '11px', letterSpacing: '0.5px' }} size="small" variant="outlined" />;
+      return (
+        <Chip 
+          label="ОРИГІНАЛ" 
+          sx={{ color: '#94a3b8', borderColor: 'rgba(148, 163, 184, 0.4)', borderRadius: 1.5, fontWeight: 600, fontSize: '11px', letterSpacing: '0.5px' }} 
+          size="small" variant="outlined" 
+        />
+      );
     }
     
+    // 2. Якщо зміни були менше 24 годин тому - статус "ЩОЙНО ЗМІНЕНО"
     if (isRecentlyUpdated(textItem.updated_at)) {
-      return <Chip label="ЩОЙНО ЗМІНЕНО" sx={{ color: '#4ade80', borderColor: 'rgba(74, 222, 128, 0.4)', borderRadius: 1.5, fontWeight: 600, fontSize: '11px', letterSpacing: '0.5px' }} size="small" variant="outlined" />;
+      return (
+        <Chip 
+          label="ЩОЙНО ЗМІНЕНО" 
+          sx={{ color: '#4ade80', borderColor: 'rgba(74, 222, 128, 0.4)', borderRadius: 1.5, fontWeight: 600, fontSize: '11px', letterSpacing: '0.5px' }} 
+          size="small" variant="outlined" 
+        />
+      );
     }
 
-    return <Chip label="КАСТОМНИЙ" sx={{ color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.4)', borderRadius: 1.5, fontWeight: 600, fontSize: '11px', letterSpacing: '0.5px' }} size="small" variant="outlined" />;
+    // 3. Якщо зміни були більше 24 годин тому - тепер це "ЗМІНЕНО"
+    return (
+      <Chip 
+        label="ЗМІНЕНО" 
+        sx={{ color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.4)', borderRadius: 1.5, fontWeight: 600, fontSize: '11px', letterSpacing: '0.5px' }} 
+        size="small" variant="outlined" 
+      />
+    );
   };
 
-  if (loading) {
-    return <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}><CircularProgress sx={{ color: "#38bdf8" }} /></Box>;
-  }
+// Допоміжна константа для стилів, щоб не дублювати код (винеси це окремо або просто скопіюй сюди)
+const chipStyles = { borderRadius: 1.5, fontWeight: 600, fontSize: '11px', letterSpacing: '0.5px' };
 
   const inputBg = isDarkMode ? '#0f172a' : '#f8fafc';
   const inputTextColor = isDarkMode ? '#f1f5f9' : '#0f172a';

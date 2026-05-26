@@ -15,10 +15,12 @@ import DarkModeIcon from '@mui/icons-material/DarkMode';
 import MenuIcon from '@mui/icons-material/Menu'; 
 import CloseIcon from '@mui/icons-material/Close'; 
 import MoveToInboxIcon from '@mui/icons-material/MoveToInbox';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'; // ДОДАНО ІМПОРТ НОВОЇ ІКОНКИ
 
-const API_URL = window.location.hostname === "localhost" 
-  ? "http://localhost/backend" 
-  : "/backend";
+// Замість старої логіки з localhost, вказуємо пряму IP-адресу твого комп'ютера.
+// УВАГА: Заміни 192.168.X.X на свої реальні цифри (IPv4)!
+
+const API_URL = "http://192.168.1.23/backend";
 
 function App() {
   const [messages, setMessages] = useState([]);
@@ -115,7 +117,6 @@ function App() {
     });
   };
 
-  // === УНІВЕРСАЛЬНА ЛОГІКА ТОСТЕРА ===
   // === УНІВЕРСАЛЬНА ЛОГІКА ТОСТЕРА З АНІМАЦІЄЮ ===
   const [toast, setToast] = useState({ open: false, closing: false, type: '', message: '', details: '' });
 
@@ -212,7 +213,7 @@ function App() {
       
       if (result.success) {
         // Передаємо JSX для красивого зеленого виділення
-        showToast('success', <>Звернення <span className="text-green">{result.tracking_code}</span> відправлено</>);
+        showToast('success', <>Звернення <span className="text-green">успішно</span> відправлено</>);
         
         setShowComplaintForm(false);
         setShowPersonalFields(false);
@@ -260,12 +261,23 @@ function App() {
         <Box className="sidebar-bottom-actions">
           {isAdmin ? (
             <>
-              <Button className="btn-dashboard-sidebar" startIcon={<SettingsIcon />} fullWidth onClick={() => setShowAdminDashboard(true)}>ДАШБОРД</Button>
+              <Button className="btn-dashboard-sidebar" startIcon={<SettingsIcon />} fullWidth onClick={() => setShowAdminDashboard(true)}>АДМІНПАНЕЛЬ</Button>
               <Button className="btn-logout-sidebar" startIcon={<LogoutIcon />} fullWidth onClick={handleLogout}>ВИХІД</Button>
             </>
           ) : (
             <Button className="btn-login-sidebar" startIcon={<LoginIcon />} fullWidth onClick={() => { setIsSidebarOpen(true); setIsMobileMenuOpen(false); }}>ВХІД В АКАУНТ</Button>
           )}
+
+          {/* === НОВА КНОПКА ПОВЕРНЕННЯ НА САЙТ === */}
+          <Button 
+            component="a" 
+            href="http://nvpet.novograd.info" 
+            className="btn-back-college"
+            startIcon={<ArrowBackIcon />}
+            fullWidth
+          >
+            Сайт коледжу
+          </Button>
         </Box>
       </div>
 
@@ -412,14 +424,13 @@ function App() {
       )}
 
       {/* === УНІВЕРСАЛЬНЕ КАСТОМНЕ СПОВІЩЕННЯ (TOAST) === */}
-      {/* === УНІВЕРСАЛЬНЕ КАСТОМНЕ СПОВІЩЕННЯ (TOAST) === */}
       {toast.open && (
         <div className="custom-toast-overlay">
           {/* Додаємо клас closing, якщо тост закривається */}
           <div className={`custom-toast ${toast.closing ? 'closing' : ''}`} data-type={toast.type}>
             <div className="toast-content">
               <span className="toast-title">
-                {toast.type === 'success' ? 'Успішно' : 'Помилка'}
+                {toast.type === 'success' ? 'Готово 📨' : 'От халепа 😥'}
               </span>
               <p className="toast-message">
                 {toast.message}
