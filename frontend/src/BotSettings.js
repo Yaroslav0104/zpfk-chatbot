@@ -8,7 +8,7 @@ import {
 import defaultSteps from './data/steps.js'; 
 import './BotSettings.css'; 
 
-const API_URL = "http://172.20.10.3/backend";
+import { API_URL } from "./config";
 
 export default function BotSettings({ isDarkMode, showToast }) {
   const [botTexts, setBotTexts] = useState([]); 

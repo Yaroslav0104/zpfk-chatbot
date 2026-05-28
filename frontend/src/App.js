@@ -19,7 +19,7 @@ import MoveToInboxIcon from '@mui/icons-material/MoveToInbox';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'; 
 import StarOutlineIcon from '@mui/icons-material/StarOutline'; 
 
-const API_URL = "http://172.20.10.3/backend";
+import { API_URL } from "./config";
 
 function App() {
   const [messages, setMessages] = useState([]);

@@ -35,7 +35,7 @@ import { Document, Packer, Paragraph, TextRun, Table as WordTable, TableRow as W
 import { saveAs } from "file-saver";
 import * as XLSX from "xlsx";
 
-const API_URL = "http://172.20.10.3/backend";
+import { API_URL } from "./config";
 
 const PIE_COLORS = ['#38bdf8', '#fbbf24', '#4ade80', '#f87171', '#c084fc', '#f472b6'];
 
