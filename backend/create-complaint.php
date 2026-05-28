@@ -1,4 +1,7 @@
 <?php
+// =========================================================
+// 1. ПІДКЛЮЧЕННЯ PHPMAILER ТА НАЛАШТУВАННЯ CORS
+// =========================================================
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
@@ -13,6 +16,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     exit(0);
 }
 
+// =========================================================
+// 2. ОТРИМАННЯ ДАНИХ ВІД REACT
+// =========================================================
 $data = json_decode(file_get_contents("php://input"), true);
 if (empty($data)) {
     $data = $_POST;
@@ -23,13 +29,18 @@ if (empty($data)) {
     exit;
 }
 
+// =========================================================
+// 3. ПІДКЛЮЧЕННЯ ДО БД
+// =========================================================
 require_once 'db.php';
 
 try {
     $pdo->beginTransaction(); 
 
+    // 4. ГЕНЕРАЦІЯ УНІКАЛЬНОГО КОДУ ЗВЕРНЕННЯ
     $tracking_code = strtoupper(substr(uniqid(), -6));
 
+    // 4.5 АНАЛІЗ ЧЕРЕЗ ШІ-СЕРВЕР (PYTHON)
     $ai_sentiment = 'neutral'; 
     $ai_is_spam = 0;            
     $text_to_analyze = $data['message'] ?? '';
@@ -65,6 +76,7 @@ try {
     $debug_info .= "Збережено Тональність: $ai_sentiment | Збережено Спам: $ai_is_spam\n-----------------\n";
     file_put_contents(__DIR__ . '/ai_log.txt', $debug_info, FILE_APPEND);
 
+    // 5. ЗАПИС У ТАБЛИЦЮ COMPLAINTS
     $sql = "INSERT INTO complaints (
         tracking_code, full_name, student_group, category, urgency, message, 
         is_anonymous, contact_type, contact_value, appeal_type, 
@@ -93,6 +105,7 @@ try {
 
     $complaint_id = $pdo->lastInsertId();
 
+    // 6. ЗАПИС У ТАБЛИЦЮ ІСТОРІЇ (complaint_history)
     $history_sql = "INSERT INTO complaint_history (complaint_id, action_description) VALUES (:complaint_id, :action_description)";
     $history_stmt = $pdo->prepare($history_sql);
     $history_stmt->execute([
@@ -100,9 +113,18 @@ try {
         ':action_description' => 'Звернення створено користувачем'
     ]);
 
-    $pdo->commit();
+    // =========================================================
+    // 7. ВІДПРАВКА СПОВІЩЕННЯ НА ПОШТУ АДМІНІСТРАТОРА (PHPMailer)
+    // =========================================================
+    
+    // БЕЗПЕКА: Витягуємо пошти та паролі з бази даних, щоб не зберігати їх у коді
+    $stmt_settings = $pdo->query("SELECT setting_key, setting_value FROM system_settings WHERE setting_key IN ('sender_email', 'admin_email', 'smtp_password')");
+    $settings = $stmt_settings->fetchAll(PDO::FETCH_KEY_PAIR);
 
-    $admin_email = 'kornijcuknazarij13@gmail.com'; 
+    $sender_email  = $settings['sender_email'] ?? 'zpfkbot@gmail.com';
+    $smtp_password = $settings['smtp_password'] ?? '';
+    $admin_email   = $settings['admin_email'] ?? 'nazarij2101@gmail.com'; 
+
     $subject = "Нове звернення в боті ZPFK";
     
     $cat = $data['category'] ?? 'Не вказано';
@@ -129,17 +151,18 @@ try {
 
     try {
         $mail->isSMTP();
-        $mail->Host       = 'smtp.gmail.com';
+        $mail->Host       = 'smtp.gmail.com'; 
         $mail->SMTPAuth   = true;
         
-        $mail->Username   = 'zpfkbot@gmail.com'; 
-        $mail->Password   = 'rorxicgwujawwltv';
+        // Використовуємо змінні з Бази Даних
+        $mail->Username   = $sender_email; 
+        $mail->Password   = $smtp_password; 
         
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port       = 587; 
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS; 
+        $mail->Port       = 587;                              
         $mail->CharSet    = 'UTF-8';
 
-        $mail->setFrom('zpfkbot@gmail.com', 'ZPFK Bot'); 
+        $mail->setFrom($sender_email, 'ZPFK Bot'); 
         $mail->addAddress($admin_email); 
 
         $mail->isHTML(false); 
@@ -151,6 +174,9 @@ try {
         file_put_contents(__DIR__ . '/ai_log.txt', "Помилка пошти: {$mail->ErrorInfo}\n", FILE_APPEND);
     }
     
+    // Підтверджуємо транзакцію тільки якщо все пройшло успішно
+    $pdo->commit();
+
     echo json_encode([
         "success" => true, 
         "message" => "Скаргу успішно створено!",

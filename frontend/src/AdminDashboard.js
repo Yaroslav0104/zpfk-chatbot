@@ -26,6 +26,7 @@ import GroupIcon from '@mui/icons-material/Group';
 import DescriptionIcon from '@mui/icons-material/Description';
 import TableViewIcon from '@mui/icons-material/TableView';
 import CloseIcon from '@mui/icons-material/Close';
+import StarIcon from '@mui/icons-material/Star'; 
 
 import Chart from "react-apexcharts";
 import BotSettings from './BotSettings'; 
@@ -34,8 +35,7 @@ import { Document, Packer, Paragraph, TextRun, Table as WordTable, TableRow as W
 import { saveAs } from "file-saver";
 import * as XLSX from "xlsx";
 
-
-const API_URL = "http://192.168.1.23/backend";
+const API_URL = "http://172.20.10.3/backend";
 
 const PIE_COLORS = ['#38bdf8', '#fbbf24', '#4ade80', '#f87171', '#c084fc', '#f472b6'];
 
@@ -115,6 +115,8 @@ function Sidebar({ view, setView, onLogout, onReturnToBot, isMobileMenuOpen }) {
         <Button startIcon={<ArchiveIcon />} fullWidth className={`nav-btn ${view === "archive" ? "active" : ""}`} onClick={() => setView("archive")}>Архів звернень</Button>
         <Button startIcon={<ReportIcon />} fullWidth className={`nav-btn ${view === "spam" ? "active" : ""}`} onClick={() => setView("spam")}>Спам</Button>
         
+        <Button startIcon={<StarIcon />} fullWidth className={`nav-btn ${view === "ratings" ? "active" : ""}`} onClick={() => setView("ratings")}>Відгуки та оцінки</Button>
+        
         <Divider sx={{ my: 2, borderColor: 'rgba(255,255,255,0.1)' }} />
         
         <Button startIcon={<SettingsIcon />} fullWidth className={`nav-btn ${view === "bot_settings" ? "active" : ""}`} onClick={() => setView("bot_settings")}>Налаштування бота</Button>
@@ -129,6 +131,7 @@ function Sidebar({ view, setView, onLogout, onReturnToBot, isMobileMenuOpen }) {
 
 export default function AdminDashboard({ onLogout, onReturnToBot }) {
   const [complaints, setComplaints] = useState([]);
+  const [ratings, setRatings] = useState([]); 
   const [view, setView] = useState("dashboard");
   const [tableFilter, setTableFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -160,6 +163,16 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
     return newTheme;
   });
 
+  const fetchRatings = async () => {
+    try {
+        const res = await fetch(`${API_URL}/get-ratings.php`);
+        const data = await res.json();
+        setRatings(Array.isArray(data) ? data : []);
+    } catch (error) {
+        console.error("Помилка завантаження оцінок", error);
+    }
+  };
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -176,6 +189,9 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
       const visitsRes = await fetch(`${API_URL}/get-visits.php?t=${new Date().getTime()}`);
       if (visitsRes.ok) setDailyVisitors((await visitsRes.json()).today_visits || 0);
     } catch (err) { console.error("Помилка відвідувачів:", err); }
+    
+    await fetchRatings();
+    
     setLoading(false);
   };
 
@@ -537,6 +553,7 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
               {view === "dashboard" ? "Аналітика системи" : 
                view === "archive" ? "Архів звернень" : 
                view === "spam" ? "Спам" : 
+               view === "ratings" ? "Відгуки та оцінки" :
                view === "bot_settings" ? "Налаштування бота" : "Активні звернення"}
             </Typography>
             <IconButton onClick={toggleTheme} sx={{ color: isDarkMode ? '#fbbf24' : '#64748b' }}>{isDarkMode ? <LightModeIcon /> : <DarkModeIcon />}</IconButton>
@@ -603,6 +620,55 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
 
               {view === "bot_settings" && (
                 <BotSettings isDarkMode={isDarkMode} showToast={showToast} />
+              )}
+
+              {/* === НОВА ВКЛАДКА ДЛЯ ВІДГУКІВ ТА ОЦІНОК === */}
+              {view === "ratings" && (
+                <Paper className="glass-panel" sx={{ p: 3 }}>
+                  <Typography className="panel-title" sx={{ mb: 3 }}>Відгуки користувачів про роботу бота</Typography>
+                  {/* Фільтруємо оцінки: відкидаємо ті, що ШІ позначив як спам (is_spam === 1) */}
+                  {ratings.filter(r => Number(r.is_spam) !== 1).length === 0 ? (
+                    <Typography sx={{ textAlign: 'center', color: '#9ca3af', py: 5 }}>Немає корисних відгуків.</Typography>
+                  ) : (
+                    <Grid container spacing={3}>
+                      {ratings
+                        .filter(rate => Number(rate.is_spam) !== 1)
+                        .map(rate => (
+                          <Grid item xs={12} sm={6} md={4} lg={3} key={rate.id}>
+                            <Card sx={{ 
+                              bgcolor: isDarkMode ? 'rgba(255,255,255,0.03)' : '#f8fafc', 
+                              border: `1px solid ${isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`,
+                              boxShadow: 'none',
+                              borderRadius: 2,
+                              height: '100%'
+                            }}>
+                              <CardContent>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                                  <Typography variant="h6">
+                                    {[...Array(5)].map((_, i) => (
+                                      <span key={i} style={{ color: i < rate.stars ? '#fbbf24' : (isDarkMode ? '#334155' : '#cbd5e1') }}>★</span>
+                                    ))}
+                                  </Typography>
+                                  <Typography variant="caption" sx={{ color: '#9ca3af' }}>
+                                    {new Date(rate.created_at).toLocaleDateString()}
+                                  </Typography>
+                                </Box>
+                                {rate.comment ? (
+                                  <Typography variant="body2" sx={{ color: isDarkMode ? '#e2e8f0' : '#334155', mt: 1 }}>
+                                    "{rate.comment}"
+                                  </Typography>
+                                ) : (
+                                  <Typography variant="body2" sx={{ color: '#9ca3af', fontStyle: 'italic', mt: 1 }}>
+                                    Без коментаря
+                                  </Typography>
+                                )}
+                              </CardContent>
+                            </Card>
+                          </Grid>
+                        ))}
+                    </Grid>
+                  )}
+                </Paper>
               )}
 
               {(view === "table" || view === "archive" || view === "spam") && (
@@ -726,6 +792,53 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
                       </Table>
                     </Box>
                   </Paper>
+
+                  {/* === БЛОК СПАМ-ВІДГУКІВ (ВІДОБРАЖАЄТЬСЯ ТІЛЬКИ У ВКЛАДЦІ СПАМ) === */}
+                  {view === "spam" && (
+                    <Box sx={{ mt: 5 }}>
+                      <Typography variant="h6" sx={{ color: isDarkMode ? "#f3f4f6" : "#0f172a", fontWeight: 700, mb: 3 }}>
+                        🚫 Відгуки та оцінки, відфільтровані ШІ як спам
+                      </Typography>
+                      
+                      {ratings.filter(r => Number(r.is_spam) === 1).length === 0 ? (
+                        <Typography sx={{ color: '#9ca3af' }}>Немає спам-відгуків.</Typography>
+                      ) : (
+                        <Grid container spacing={3}>
+                          {ratings.filter(r => Number(r.is_spam) === 1).map(rate => (
+                            <Grid item xs={12} sm={6} md={4} lg={3} key={rate.id}>
+                              <Card sx={{ 
+                                bgcolor: isDarkMode ? 'rgba(248, 113, 113, 0.05)' : '#fee2e2', 
+                                border: `1px solid ${isDarkMode ? 'rgba(248, 113, 113, 0.2)' : '#fca5a5'}`,
+                                boxShadow: 'none',
+                                borderRadius: 2,
+                                height: '100%'
+                              }}>
+                                <CardContent>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 2 }}>
+                                    <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
+                                      {[...Array(5)].map((_, i) => (
+                                      <span key={i} style={{ color: i < rate.stars ? '#f87171' : (isDarkMode ? '#334155' : '#cbd5e1') }}>★</span>
+                                      ))}
+                                   </Typography>
+                                   <Typography variant="caption" sx={{ color: '#ef4444', fontWeight: 'bold', ml: 'auto' }}>
+                                      СПАМ
+                                   </Typography>
+                                  </Box>
+                                  <Typography variant="body2" sx={{ color: isDarkMode ? '#e2e8f0' : '#334155', mt: 1 }}>
+                                    "{rate.comment}"
+                                  </Typography>
+                                  <Typography variant="caption" sx={{ color: '#9ca3af', display: 'block', mt: 2 }}>
+                                    {new Date(rate.created_at).toLocaleDateString()}
+                                  </Typography>
+                                </CardContent>
+                              </Card>
+                            </Grid>
+                          ))}
+                        </Grid>
+                      )}
+                    </Box>
+                  )}
+
                  </>
               )}
             </>
@@ -738,7 +851,7 @@ export default function AdminDashboard({ onLogout, onReturnToBot }) {
           <div className={`custom-toast ${toast.closing ? 'closing' : ''}`} data-type={toast.type}>
             <div className="toast-content">
               <span className="toast-title">
-                {toast.type === 'success' ? 'Готово' : 'От халепа 😥'}
+                {toast.type === 'success' ? 'Готово' : 'Помилка'}
               </span>
               <p className="toast-message">
                 {toast.message}

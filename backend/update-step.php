@@ -15,6 +15,7 @@ $data = json_decode(file_get_contents("php://input"));
 
 if (!empty($data->step_id) && isset($data->message)) {
     try {
+        // Додаємо оновлення updated_at в обидві частини запиту
         $sql = "INSERT INTO bot_texts (id, message, updated_at) 
                 VALUES (?, ?, NOW()) 
                 ON DUPLICATE KEY UPDATE 
@@ -22,6 +23,7 @@ if (!empty($data->step_id) && isset($data->message)) {
                 updated_at = NOW()";
                 
         $stmt = $pdo->prepare($sql);
+        // Передаємо параметри: step_id, message (для insert), message (для update)
         $stmt->execute([$data->step_id, $data->message, $data->message]);
         
         echo json_encode(["success" => true]);

@@ -1,8 +1,10 @@
 <?php
+// БРОНЕБІЙНІ ЗАГОЛОВКИ CORS
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
+// Якщо браузер просто перевіряє з'єднання (OPTIONS), віддаємо статус 200 і закриваємо
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     http_response_code(200);
     exit();

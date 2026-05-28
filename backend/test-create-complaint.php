@@ -5,7 +5,7 @@ error_reporting(E_ALL);
 
 require_once 'db.php';
 
-$full_name = 'Ім\'я Прізвище';
+$full_name = 'Ярослав Ковбасюк';
 $student_group = 'КН-21';
 $category = 'administration';
 $subject = 'Тестова скарга';

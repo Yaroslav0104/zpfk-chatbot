@@ -4,9 +4,10 @@ import staticSteps from "./data/steps";
 import ChatBox from "./components/ChatBox/ChatBox";
 import ButtonGroup from "./components/ButtonGroup/ButtonGroup";
 import AdminDashboard from "./AdminDashboard";
+import FeedbackModal from "./components/FeedbackModal/FeedbackModal";
+import RatingModal from "./components/RatingModal/RatingModal";
 import { Drawer, Button, Typography, Box, Divider, IconButton, CircularProgress } from '@mui/material';
 
-// === ІКОНКИ ===
 import SettingsIcon from '@mui/icons-material/Settings';
 import LoginIcon from '@mui/icons-material/Login';
 import LogoutIcon from '@mui/icons-material/Logout';
@@ -16,8 +17,9 @@ import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close'; 
 import MoveToInboxIcon from '@mui/icons-material/MoveToInbox';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'; 
+import StarOutlineIcon from '@mui/icons-material/StarOutline'; 
 
-const API_URL = "http://192.168.1.23/backend";
+const API_URL = "http://172.20.10.3/backend";
 
 function App() {
   const [messages, setMessages] = useState([]);
@@ -43,6 +45,12 @@ function App() {
   const [isSending, setIsSending] = useState(false);
 
   const [showPersonalFields, setShowPersonalFields] = useState(false);
+
+  // === СТАНИ ДЛЯ ВІКОН ОЦІНЮВАННЯ ТА ПЕРЕХОДУ ===
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [ratingComment, setRatingComment] = useState("");
+  const [pendingRedirect, setPendingRedirect] = useState(null); // Зберігає URL для переходу після оцінки
 
   const [complaintData, setComplaintData] = useState({
     full_name: "", student_group: "", appeal_type: "complaint", category: "Навчальний процес", 
@@ -115,7 +123,6 @@ function App() {
 
   const [toast, setToast] = useState({ open: false, closing: false, type: '', message: '', details: '' });
 
-  // Плавне закриття
   const closeToast = () => {
     setToast(prev => ({ ...prev, closing: true })); 
     setTimeout(() => {
@@ -205,14 +212,11 @@ function App() {
       const result = await response.json();
       
       if (result.success) {
-
         showToast('success', <>Звернення <span className="text-green">успішно</span> відправлено</>);
-        
         setShowComplaintForm(false);
         setShowPersonalFields(false);
         setComplaintData({ full_name: "", student_group: "", appeal_type: "complaint", category: "Навчальний процес", urgency: "medium", message: "", is_anonymous: 1, contact_type: "none", contact_value: "" });
       } else {
-
         showToast('error', <>Звернення <span className="text-red">не</span> відправлено</>, result.error || 'Невідома помилка сервера');
       }
     } catch (error) { 
@@ -234,6 +238,63 @@ function App() {
       setMessages((prev) => [...prev, { sender: "bot", text: botSteps[next].message }]);
       setCurrentStep(next);
     }, 600);
+  };
+
+  // === ЛОГІКА ПЕРЕХОДУ ТА ОЦІНЮВАННЯ ===
+  const handleExitClick = (url) => {
+    const hasSeenRatingPrompt = sessionStorage.getItem("hasSeenRatingPrompt");
+
+    // Якщо це звичайний користувач і йому ще не пропонували оцінити бота в цій сесії
+    if (!hasSeenRatingPrompt && !isAdmin) {
+      const randomChance = Math.random();
+      
+      if (randomChance <= 0.25) { // 25% ймовірність
+        sessionStorage.setItem("hasSeenRatingPrompt", "true");
+        setPendingRedirect(url); // Запам'ятовуємо, куди користувач хотів перейти
+        setShowFeedbackModal(true); // Показуємо модалку
+        return; // Зупиняємо миттєвий перехід на сайт
+      }
+    }
+    
+    // Якщо шанс не випав, або вікно вже показували — переходимо одразу
+    window.location.href = url;
+  };
+
+  const handleFeedbackChoice = (wantsToRate) => {
+    setShowFeedbackModal(false);
+    if (wantsToRate) {
+      setShowRatingModal(true);
+    } else {
+      // Якщо відмовився оцінювати — перекидаємо на збережений URL (або просто ховаємо)
+      if (pendingRedirect) {
+        window.location.href = pendingRedirect;
+      } else {
+        showToast('success', 'Дякуємо за використання бота!');
+      }
+    }
+  };
+
+  const handleRate = async (stars) => {
+    try {
+        await fetch(`${API_URL}/save-rating.php`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stars: stars, comment: ratingComment })
+        });
+        // Ми не чекаємо success для переходу, щоб не затримувати користувача
+    } catch (error) {
+        console.error('Помилка збереження оцінки', error);
+    }
+
+    setShowRatingModal(false);
+    setRatingComment(""); 
+    
+    // Після оцінки перекидаємо на сайт (якщо перехід був ініційований кнопкою виходу)
+    if (pendingRedirect) {
+      window.location.href = pendingRedirect;
+    } else {
+      showToast('success', 'Дякуємо за вашу оцінку!');
+    }
   };
 
   if (isAdmin && showAdminDashboard) {
@@ -261,12 +322,12 @@ function App() {
             <Button className="btn-login-sidebar" startIcon={<LoginIcon />} fullWidth onClick={() => { setIsSidebarOpen(true); setIsMobileMenuOpen(false); }}>ВХІД В АКАУНТ</Button>
           )}
 
+          {/* === ОНОВЛЕНА КНОПКА ПЕРЕХОДУ НА САЙТ === */}
           <Button 
-            component="a" 
-            href="http://nvpet.novograd.info" 
             className="btn-back-college"
             startIcon={<ArrowBackIcon />}
             fullWidth
+            onClick={() => handleExitClick("http://nvpet.novograd.info")}
           >
             Сайт коледжу
           </Button>
@@ -279,7 +340,16 @@ function App() {
             <MenuIcon />
           </IconButton>
           <span className="header-title">Твій бот-консультант</span>
-          <IconButton onClick={toggleTheme} sx={{ color: isDarkMode ? '#fbbf24' : '#64748b', ml: 'auto' }}>
+          
+          <IconButton 
+            onClick={() => { setPendingRedirect(null); setShowFeedbackModal(true); }} 
+            sx={{ color: isDarkMode ? '#10b981' : '#059669', ml: 'auto', mr: 1 }}
+            title="Оцінити бота"
+          >
+            <StarOutlineIcon />
+          </IconButton>
+
+          <IconButton onClick={toggleTheme} sx={{ color: isDarkMode ? '#fbbf24' : '#64748b' }}>
             {isDarkMode ? <LightModeIcon /> : <DarkModeIcon />}
           </IconButton>
         </div>
@@ -305,7 +375,6 @@ function App() {
       {showComplaintForm && (
         <div className="bot-modal-overlay">
           <div className="bot-modal-content">
-            
             <IconButton className="modal-close-btn" onClick={() => setShowComplaintForm(false)} sx={{ color: isDarkMode ? '#9ca3af' : '#64748b' }}>
               <CloseIcon />
             </IconButton>
@@ -319,7 +388,6 @@ function App() {
             </Box>
 
             <Box className="modal-form-body">
-              
               <div className="bot-modal-field">
                 <label>Тип звернення:</label>
                 <select className="bot-glass-input" value={complaintData.appeal_type} onChange={e => handleChange('appeal_type', e.target.value)}>
@@ -414,12 +482,24 @@ function App() {
         </div>
       )}
 
+      {showFeedbackModal && (
+        <FeedbackModal onChoice={handleFeedbackChoice} />
+      )}
+
+      {showRatingModal && (
+        <RatingModal 
+          onRate={handleRate} 
+          setComment={setRatingComment} 
+          comment={ratingComment} 
+        />
+      )}
+
       {toast.open && (
         <div className="custom-toast-overlay">
           <div className={`custom-toast ${toast.closing ? 'closing' : ''}`} data-type={toast.type}>
             <div className="toast-content">
               <span className="toast-title">
-                {toast.type === 'success' ? 'Готово 📨' : 'От халепа 😥'}
+                {toast.type === 'success' ? 'Готово 😉' : 'От халепа 😥'}
               </span>
               <p className="toast-message">
                 {toast.message}

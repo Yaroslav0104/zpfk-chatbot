@@ -8,7 +8,7 @@ import {
 import defaultSteps from './data/steps.js'; 
 import './BotSettings.css'; 
 
-const API_URL = "http://192.168.1.23/backend";
+const API_URL = "http://172.20.10.3/backend";
 
 export default function BotSettings({ isDarkMode, showToast }) {
   const [botTexts, setBotTexts] = useState([]); 
@@ -59,7 +59,6 @@ export default function BotSettings({ isDarkMode, showToast }) {
 
       setBotTexts(allAvailableTexts);
     } catch (err) {
-      // 🔴 ЗМІНА ТУТ
       showToast('error', 'Помилка завантаження текстів');
     }
     if (!silent) setLoading(false);
@@ -89,8 +88,7 @@ export default function BotSettings({ isDarkMode, showToast }) {
       const result = await res.json();
       
       if (result.success) {
-        // 🔴 ЗМІНА ТУТ
-        showToast('success', <>Звернення <span className="text-green">успішно</span> відправлено</>);
+        showToast('success', <>Блок <span className="text-green">успішно</span> оновлено</>);
         setEditingItem(null); 
         fetchTexts(true); 
       } else {
@@ -166,8 +164,6 @@ export default function BotSettings({ isDarkMode, showToast }) {
     );
   };
 
-const chipStyles = { borderRadius: 1.5, fontWeight: 600, fontSize: '11px', letterSpacing: '0.5px' };
-
   const inputBg = isDarkMode ? '#0f172a' : '#f8fafc';
   const inputTextColor = isDarkMode ? '#f1f5f9' : '#0f172a';
   const borderColor = isDarkMode ? '#334155' : '#e2e8f0';
@@ -178,16 +174,21 @@ const chipStyles = { borderRadius: 1.5, fontWeight: 600, fontSize: '11px', lette
 
       {editingItem && (
         <Paper elevation={0} className={`editor-panel ${themeMode}`}>
-          <Typography variant="subtitle2" className="editor-title">
-            ✏️ Редагування блоку: {editingItem.id}
+          {/* Виправлений заголовок */}
+          <Typography variant="h6" className="editor-title">
+            ✏️ РЕДАГУВАННЯ БЛОКУ: {editingItem.id}
           </Typography>
           
+          {/* Виправлена підказка (винесена з label) */}
+          <Typography variant="body2" className="editor-subtitle" sx={{ mb: 2, display: 'block' }}>
+            Текст повідомлення (залиште [ПОСИЛАННЯ] там, де має бути кнопка)
+          </Typography>
+
           <TextField 
-            label="Текст повідомлення (Залиште [ПОСИЛАННЯ] там, де має бути кнопка)"
+            placeholder="Введіть текст повідомлення..."
             fullWidth multiline rows={isMobile ? 6 : 4} variant="outlined"
             value={editPlainText}
             onChange={(e) => setEditPlainText(e.target.value)}
-            InputLabelProps={{ style: { color: isDarkMode ? '#94a3b8' : '#64748b' } }}
             sx={{ 
               mb: 3, bgcolor: inputBg, 
               '& .MuiInputBase-input': { color: inputTextColor, lineHeight: 1.6 },
@@ -196,7 +197,8 @@ const chipStyles = { borderRadius: 1.5, fontWeight: 600, fontSize: '11px', lette
           />
 
           <Divider sx={{ mb: 3, borderColor: borderColor }} />
-          <Typography variant="body2" className="editor-subtitle">
+          
+          <Typography variant="body2" className="editor-subtitle" sx={{ mb: 2, display: 'block' }}>
             🔗 Налаштування посилання (необов'язково)
           </Typography>
 

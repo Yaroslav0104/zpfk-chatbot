@@ -1,29 +1,64 @@
+/* Використовуємо той самий оверлей, що й вище */
 .modal {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
   display: flex;
-  align-items: center;
   justify-content: center;
-  z-index: 10;
+  align-items: center;
+  z-index: 9999;
 }
 
 .modal-content {
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
+  background: #ffffff;
+  padding: 30px 24px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
   text-align: center;
+  max-width: 400px;
+  width: 90%;
+  animation: modalFadeIn 0.3s ease-out;
 }
 
-.modal-content textarea,
-.modal-content input {
-  width: 80%;
-  padding: 10px;
+.modal-content h3 {
+  margin-top: 0;
+  color: #0f172a;
+  font-size: 22px;
+  margin-bottom: 10px;
+}
+
+/* Анімація при наведенні на зірочки */
+.stars button {
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.stars button:hover {
+  transform: scale(1.3);
+}
+
+/* Красиве поле для коментаря */
+.modal-content textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 100px;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
   margin-top: 10px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
-  font-size: 14px;
+  font-family: inherit;
+  font-size: 15px;
+  resize: none; /* Забороняємо розтягувати, щоб не зламати дизайн */
+  transition: border-color 0.2s;
+  background: #f8fafc;
+}
+
+.modal-content textarea:focus {
+  outline: none;
+  border-color: #38bdf8;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
 }

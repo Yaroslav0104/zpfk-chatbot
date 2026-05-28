@@ -4,8 +4,10 @@ header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: POST");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
+// Підключаємо файл з конфігурацією БД (переконайся, що назва файлу збігається з твоїм)
 require_once 'db_config.php'; 
 
+// Якщо підключення в db_config.php створюється через mysqli ($conn), залишаємо так:
 $data = json_decode(file_get_contents("php://input"));
 
 if (!empty($data->id) && !empty($data->priority)) {
