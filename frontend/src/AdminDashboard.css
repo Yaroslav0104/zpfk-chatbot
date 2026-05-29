@@ -38,12 +38,12 @@
   flex-direction: column; 
 }
 .glass-panel {
-  background: rgba(17, 24, 39, 0.4) !important;
+ background: rgba(17, 24, 39, 0.4) !important;
   backdrop-filter: blur(12px);
   border-radius: 20px !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
   padding: 24px;
-  height: 100%;
+  height: auto;
 }
 .light-theme .glass-panel { background: #fff !important; border: 1px solid #e2e8f0 !important; }
 

@@ -248,7 +248,7 @@ function App() {
     if (!hasSeenRatingPrompt && !isAdmin) {
       const randomChance = Math.random();
       
-      if (randomChance <= 0.25) { // 25% ймовірність
+      if (randomChance <= 0.50) { // 50% ймовірність
         sessionStorage.setItem("hasSeenRatingPrompt", "true");
         setPendingRedirect(url); // Запам'ятовуємо, куди користувач хотів перейти
         setShowFeedbackModal(true); // Показуємо модалку
@@ -491,6 +491,13 @@ function App() {
           onRate={handleRate} 
           setComment={setRatingComment} 
           comment={ratingComment} 
+          onClose={() => {
+            setShowRatingModal(false);
+            setRatingComment("");
+            if (pendingRedirect) {
+              window.location.href = pendingRedirect;
+            }
+          }}
         />
       )}
 
